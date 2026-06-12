@@ -47,3 +47,23 @@
 **Diff budget:** 3 değişen, 0 yeni.
 **Done criteria:** temiz build; sıralama+adres tespiti+ERRB/INT_B kodda; donanım kısmı MANUAL-4.
 **Stop conditions:** main.c değişikliği gerekirse dur (polling yaklaşımı bunu önlüyor).
+
+## TASK PACKET CARD-1.2 — 2026-06-12
+
+**Goal:** TMP108 ortam sıcaklığı izleme + T_HIGH=60 °C alert → FLT_TEMP# (PB5) işleme.
+**Non-goals:** Kompanzasyona katkı YOK (diyotların işi); TMP108 failover kaynağı değil.
+**Current state:** TMP108 sürücüsü yok; PB5 EXTI falling .ioc'ta tanımlı ve EXTI5 IRQ açık; main.c callback'inde FLT_TEMP işlenmiyor.
+**Datasheet teyitleri (TMP108AIYFFT.pdf):** 12-bit 0.0625 °C/LSB sol-hizalı; config 0x2230 = continuous + 1 Hz + comparator + POL aktif-LOW + HYS=4 °C (maks — 60'ta kalkar ~56'da düşer); THIGH=60 °C → 0x3C00; TLOW=-50 °C → 0xCE00 (alt limit fiilen devre dışı); ALERT dahili ~100k pull-up; adres 0x48/0x49/0x4A/0x4B (A0 pini).
+**Exact files inspected:** TMP108AIYFFT.pdf (register map), gpio.c (PB5 EXTI ✓), main.c USER CODE 4, pressure_app.c (tam), fdc2214.c (I2C deseni).
+**Files allowed to edit:** yeni App/Src/tmp108.c + App/Inc/tmp108.h; Firmware/CMakeLists.txt; App/Src/pressure_app.c; Core/Src/main.c (yalnız USER CODE blokları)
+**Files forbidden:** Drivers/**, Core/** USER CODE dışı, .ioc
+**Expected behavior after:**
+- Init: adres tarama (IsDeviceReady 0x48→0x4B), config+THIGH/TLOW yaz + read-back doğrula; başarısızlık ölümcül değil (ortam izleme yokken ölçüm sürer, tanı bayrağı)
+- 1 Hz ortam okuma; FLT_TEMP# düşmesinde EXTI → anında overtemp bayrağı; comparator histeresisle pin kalkınca poll'da temizlenir
+- Ekran satır 3 önceliği: *FAULT* > SENSOR ERR > AMB HOT > OK; alarmda ölçüm DEVAM eder (D8)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda: oda sıcaklığı makullüğü; THIGH'ı geçici 30 °C yazıp ısıtınca FLT_TEMP# düşmesi + AMB HOT; soğuyunca otomatik temizlenme.
+**Rollback plan:** git checkout -- <dosyalar>; yeni dosyaları sil.
+**Diff budget:** 3 değişen (CMakeLists, pressure_app.c, main.c USER CODE), 2 yeni.
+**Done criteria:** temiz build; config read-back doğrulaması kodda; EXTI + poll yolu kodda; donanım MANUAL-4.
+**Stop conditions:** main.c USER CODE dışına dokunmak gerekirse dur.

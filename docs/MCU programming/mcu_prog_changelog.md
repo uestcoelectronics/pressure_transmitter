@@ -171,3 +171,31 @@
 **Risks Resolved:** "FDC ERRB/INT_B kesmeleri uygulamada işlenmiyor" (MEDIUM) → kapandı (polling ile)
 
 **Next Action:** CARD-1.2 — TMP108 ortam izleme + 60 °C alert (FLT_TEMP#)
+
+## 2026-06-12 | Execute | Task: CARD-1.2
+
+**Task ID:** CARD-1.2
+**Type:** Execute
+**Status:** Complete (kod); donanım doğrulaması MANUAL-4 bekliyor
+
+**Files Created:**
+- `Firmware/App/Inc/tmp108.h`, `Firmware/App/Src/tmp108.c` — TMP108 ortam monitörü sürücüsü
+**Files Modified:**
+- `Firmware/CMakeLists.txt` — tmp108.c target_sources
+- `Firmware/App/Src/pressure_app.c` — tmp108_init (ölümcül olmayan), 1 Hz tmp108_poll tiki, ekran satır 3 önceliğine "AMB HOT >60C"
+- `Firmware/Core/Src/main.c` — USER CODE: tmp108.h include + FLT_TEMP# EXTI → tmp108_on_alert_edge()
+
+**Tests / Validations Run:**
+- TMP108AIYFFT.pdf register teyitleri: pointer map, config formatı (Table 8), HYS maks 4 °C (Table 9), ALERT dahili ~100k pull-up, 12-bit 0.0625 °C/LSB
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda adres tespiti, gerçek sıcaklık okuma, 60 °C alert tetikleme/kurtarma (geçici THIGH=30 °C ile test edilebilir) — MANUAL-4
+
+**Result:** TMP108 yalnız ORTAM izleme rolünde (kullanıcı teyitli mimari): adres taraması 0x48-0x4B, config 0x2230 (continuous, 1 Hz, comparator, POL aktif-LOW, HYS=4 °C), THIGH=60 °C / TLOW=-50 °C (alt limit pasif), config+THIGH read-back doğrulaması (FH/FL bitleri maskeli). FLT_TEMP# düşmesinde EXTI anında bayrak kurar; comparator histeresisle pin kalkınca 1 Hz poll'da otomatik temizlenir. Alarmda ölçüm DEVAM eder, ekranda "AMB HOT >60C" (öncelik: *FAULT* > SENSOR ERR > AMB HOT > OK). D8 revize: 55 °C histerezis donanımda yok → 4 °C maks (~56 °C'de düşer).
+
+**Risks Introduced:** None
+**Risks Resolved:** None (TMP108 eksikliği kalemi CARD-1.3 sonrası tamamen kapanacak)
+
+**Next Action:** CARD-1.3 — 1N4148 çift kanal (PC0/PC1) + çapraz makullük

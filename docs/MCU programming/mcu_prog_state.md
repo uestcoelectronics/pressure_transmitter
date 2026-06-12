@@ -24,7 +24,7 @@
 | D4 | BLE: AT komut + transparent UART + CRC'li binary çerçeve | Modül AT destekli (web teyitli) |
 | D5 | Menü timeout 60 s | Saha pratiği |
 | D6 | 1N4148 varsayılanları: TC≈−2 mV/°C, V_f25 bias akımına bağlı (~600 mV @ ~1 mA) | onsemi 1N914-D.PDF (1N4x48 dahil) repoda; bias direnci MANUAL-2 ile teyit |
-| D8 | TMP108 alert histerezisi: T_HIGH=60 °C / T_LOW=55 °C; alarmda ölçüm devam eder, uyarı gösterilir | Kullanıcı 60 °C eşiğini verdi; histerezis ve davranış önerilen varsayılan |
+| D8 | TMP108: T_HIGH=60 °C, comparator mode, HYS=4 °C (cihazın maks'ı → alarm ~56 °C'de düşer); alarmda ölçüm devam eder, "AMB HOT" uyarısı | Kullanıcı 60 °C eşiğini verdi; 55 °C histerezis donanımda yok — 4 °C maks (datasheet Table 9) |
 | D7 | Commit/push YOK (varsayılan) | ease-me politikası |
 
 ## Current Repo Status
@@ -33,7 +33,7 @@
 |---|---|
 | Build baseline | **complete** — CARD-0.1 ile düzeltildi (DOUBLEWORD); temiz build, 0 uyarı |
 | FDC2214 sürücü | complete (kod) — CARD-1.1: sıralama+adres tespiti+ERRB/INT_B; donanım testi MANUAL-4 |
-| Sıcaklık ölçümü | in progress — diyot modeli doğru (1N4148 teyitli); PC1 kanalı + TMP108 ortam/alert eksik (CARD-1.2/1.3) |
+| Sıcaklık ölçümü | in progress — TMP108 ortam+alert tamam (CARD-1.2); PC1 ikinci diyot kanalı kaldı (CARD-1.3) |
 | Kalibrasyon + flash | complete (build fix sonrası) — donanım testi yok |
 | LCD + menü | complete (kod) — donanım testi yok, iyileştirme planlı |
 | 4-20 loop sürücü | complete (kod) — donanım testi yok |
@@ -44,8 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-1.1 | **Tarih:** 2026-06-12 | **Commit:** 07d6df2
-- **Özet:** FDC2214 uygulama tarafı bring-up: güç/saat sıralaması (SD toggle + XO bekleme), I2C adres otomatik tespiti (0x2A→0x2B), ERRB polling (STATUS okuma + latched hata + alarm-low + "SENSOR ERR"), INT_B data-ready gating, init retry. Build PASS 0/0. Donanım testi MANUAL-4'te. main.c'ye dokunulmadı.
+- **Task ID:** CARD-1.2 | **Tarih:** 2026-06-12
+- **Özet:** TMP108 ortam monitörü: yeni tmp108.c/h — adres taraması (0x48-0x4B), config 0x2230 (continuous, 1 Hz, comparator, aktif-LOW, HYS=4 °C), THIGH=60 °C/TLOW=-50 °C + read-back doğrulama; 1 Hz poll; FLT_TEMP# EXTI → anında overtemp bayrağı, histeresisle otomatik temizlenme; ekran "AMB HOT >60C". Kompanzasyona bağlanmadı (rol ayrımı korunuyor). Build PASS 0/0.
+- **Önceki:** CARD-1.1 (FDC bring-up, 07d6df2)
 - **Önceki:** MANUAL-3 + ADC re-rank | **Tarih:** 2026-06-12
 - **Özet:** Kullanıcı CubeMX'te ADC'yi düzeltti ve regenerate etti: 4 kanal — IN1 (PC0 diyot#1), IN2 (PC1 diyot#2), IN11 (PC4 VCC_FB), IN12 (PC5 I_FB). Rank kanal bug'ı kapandı. Diff kontrolü: yalnız adc.c/.ioc/.mxproject değişti, USER CODE korunmuş. bsp_pins.h: ADC_RANK_TDIODE2=1 eklendi, VCC_FB=2/ILOOP_FB=3/COUNT=4. Build PASS (0/0). **Düzeltme: PC4/PC5 = IN11/IN12** (PIN_MAPPING.xlsx'teki IN13/IN14 HATALI — kullanıcı görsel teyidi + CubeMX).
 - **Önceki görev:** CARD-0.2 (+ CARD-0.3) | **Tarih:** 2026-06-12
@@ -59,8 +60,7 @@
 
 ## Next Recommended Task
 
-- **CARD-1.2 — TMP108 ortam izleme + 60 °C alert (FLT_TEMP#):** yeni tmp108.c/h, T_HIGH=60/T_LOW=55 konfigürasyonu, PB5 işleme. Donanım gerektirmeyen kısmı kodlanabilir.
-- Sonrası: CARD-1.3 (1N4148 çift kanal — .ioc ayağı zaten tamam, yalnız kod kaldı).
+- **CARD-1.3 — 1N4148 çift kanal (PC0/PC1) + çapraz makullük:** .ioc ayağı hazır (MANUAL-3); temp_diode.c'ye TDIODE2 kanalı, kanal ortalaması, |T1−T2| tutarlılık kontrolü. Donanım gerektirmiyor (kod + build).
 
 ## Open Risks
 

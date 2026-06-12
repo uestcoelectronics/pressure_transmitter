@@ -6,6 +6,7 @@
 #include "lcd400.h"
 #include "state_machine.h"
 #include "temp_diode.h"
+#include "tmp108.h"
 #include "xtr111_loop.h"
 #include "stm32u3xx_hal.h"
 #ifdef USE_IWDG
@@ -77,6 +78,7 @@ static void render_normal(float p, float t, float ma)
     snprintf(line, sizeof line, "T=%5.1f C        ", (double)t); lcd_write_line(2, line);
     lcd_write_line(3, loop_is_in_fault()   ? "*FAULT*"    :
                        fdc2214_has_error() ? "SENSOR ERR" :
+                       tmp108_overtemp()   ? "AMB HOT >60C" :
                        loop_is_enabled()   ? "OK"         : "LOOP DISABLED");
 }
 
@@ -132,6 +134,9 @@ void pressure_app_init(void)
     if (!fdc_ok) fdc_ok = fdc2214_init();
     if (fdc_ok) fdc2214_start();
 
+    /* TMP108 ortam monitörü — başarısızlık ölümcül değil (ölçüm sürer)       */
+    (void)tmp108_init();
+
     /* Loop output init (safe state'te kalır) */
     loop_init();
 
@@ -158,6 +163,7 @@ void pressure_app_loop(void)
     static uint32_t t_disp    = 0;
     static uint32_t t_wdi     = 0;
     static uint32_t t_btn     = 0;
+    static uint32_t t_amb     = 0;
     static uint32_t t_led     = 0;
     static bool     led_state = false;
     static float    p_filt    = 0.0f;
@@ -223,6 +229,12 @@ void pressure_app_loop(void)
             if (loop_is_enabled()) loop_set_current_ma(3.6f);
         }
         /* data_ready değilse ve hata yoksa: sadece bu tik atlandı             */
+    }
+
+    /* ---- Ortam sıcaklığı (TMP108, her 1000 ms) ---- */
+    if ((now - t_amb) >= 1000) {
+        t_amb = now;
+        tmp108_poll();
     }
 
     /* ---- Ekran tazeleme (her 250 ms) ---- */

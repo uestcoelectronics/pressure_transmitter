@@ -48,6 +48,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/App/Src/fdc2214.c
     ${CMAKE_SOURCE_DIR}/App/Src/xtr111_loop.c
     ${CMAKE_SOURCE_DIR}/App/Src/temp_diode.c
+    ${CMAKE_SOURCE_DIR}/App/Src/tmp108.c
     ${CMAKE_SOURCE_DIR}/App/Src/lcd400.c
     ${CMAKE_SOURCE_DIR}/App/Src/buttons.c
     ${CMAKE_SOURCE_DIR}/App/Src/cal_storage.c

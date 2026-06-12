@@ -33,6 +33,7 @@
 #include "pressure_app.h"
 #include "buttons.h"
 #include "xtr111_loop.h"
+#include "tmp108.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -192,7 +193,8 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin)
     else if (pin == BTN_DN_Pin)   buttons_on_edge(BTN_ID_DN);
     else if (pin == BTN_SET_Pin)  buttons_on_edge(BTN_ID_SET);
     else if (pin == LOOP_FLT_Pin) loop_set_safe_state();
-    /* Diğer EXTI'ler (FDC_INT, FDC_ERRB, FLT_TEMP, BLE_EVENT) şimdilik polling */
+    else if (pin == FLT_TEMP_Pin) tmp108_on_alert_edge();   /* ortam >60 C */
+    /* Diğer EXTI'ler (FDC_INT, FDC_ERRB, BLE_EVENT) şimdilik polling */
 }
 /* USER CODE END 4 */
 

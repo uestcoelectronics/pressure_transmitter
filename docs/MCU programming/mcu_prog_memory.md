@@ -31,8 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P1 in progress | **Son:** CARD-1.1 FDC bring-up (seviye 2, commit 07d6df2)
-- **Sıradaki:** CARD-1.2 TMP108 ortam+alert → CARD-1.3 1N4148 çift kanal (ADC .ioc ayağı hazır)
+- **Faz:** P1 in progress | **Son:** CARD-1.2 TMP108 ortam+alert (seviye 2)
+- **Sıradaki:** CARD-1.3 1N4148 çift kanal (ADC .ioc ayağı hazır) → CARD-1.4 rol entegrasyonu
+- TMP108: adres tarama 0x48-0x4B, comparator HYS=4°C (60→~56°C), FLT_TEMP# EXTI main.c'de bağlı, "AMB HOT" ekranda
 - Implementation: kart bazında ONAYLI (kullanıcı 2026-06-12)
 - FDC2214: adres otomatik tespit (0x2A/0x2B), ERRB/INT_B polling, SD+CLK_EN sıralaması app'te
 
