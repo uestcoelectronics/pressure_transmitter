@@ -119,3 +119,28 @@
 **Risks Resolved:** Git yok (HIGH) → kapandı; FDC saatsiz (HIGH) → kapandı. Yeni risk kaydı: ADC kanal bug'ı (HIGH, MANUAL-3'te çözüm).
 
 **Next Action:** CARD-1.1 (FDC uygulama tarafı) + MANUAL-3 (kullanıcı: CubeMX ADC düzeltmesi)
+
+## 2026-06-12 | Execute | Task: MANUAL-3 + ADC re-rank
+
+**Task ID:** MANUAL-3 (kullanıcı) + bsp_pins ADC düzeni (CARD-1.3'ün .ioc ayağı)
+**Type:** Execute
+**Status:** Complete
+
+**Files Created:** Yok
+**Files Modified:**
+- `Firmware/PressureTransmitter.ioc`, `Firmware/Core/Src/adc.c`, `Firmware/.mxproject` (CubeMX regenerate — kullanıcı)
+- `Firmware/App/Inc/bsp_pins.h` (ADC_RANK_TDIODE2=1 yeni, VCC_FB=2, ILOOP_FB=3, COUNT=4; IN11/IN12 yorum düzeltmesi)
+
+**Tests / Validations Run:**
+- Regenerate diff kontrolü: yalnız adc.c/.ioc/.mxproject değişti; USER CODE blokları ve App/ korunmuş ✓
+- adc.c: 4 dönüşüm — Rank1=CH1(PC0), Rank2=CH2(PC1), Rank3=CH11(PC4), Rank4=CH12(PC5); rank kanal bug'ı kapandı ✓
+- `cmake --build build/Debug` → PASS (tam yeniden derleme, 0 error / 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**Result:** ADC artık 4 kanalı gerçekten örnekliyor: iki 1N4148 diyodu (PC0/PC1), VCC_FB (PC4) ve loop akım geri beslemesi (PC5). pressure_app.c buffer'ı ADC_RANK_COUNT üzerinden otomatik 4'e çıktı; TDIODE2 verisi henüz kullanılmıyor (CARD-1.3'te işlenecek). **Bilgi düzeltmesi:** PC4/PC5 = ADC1_IN11/IN12 — PIN_MAPPING.xlsx'teki IN13/IN14 HATALI (kullanıcı CubeMX görsel teyidi); kanal/AF numaralarında CubeMX + MCU datasheet otorite kabul edildi.
+
+**Risks Introduced:** None
+**Risks Resolved:** ADC kanal bug'ı (HIGH) → kapandı
+
+**Next Action:** CARD-1.1 — FDC2214 uygulama tarafı bring-up

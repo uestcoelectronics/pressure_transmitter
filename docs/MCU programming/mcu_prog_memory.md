@@ -10,7 +10,7 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 - Build temiz (CARD-0.1: flash yazımı DOUBLEWORD'e geçirildi; U3 HAL'de QUADWORD yok)
 - Kalibrasyon: dahili flash page 127 (son 8 KB), CRC32 + magic "CAL0" v1
 - **PIN_MAPPING.xlsx = pin otoritesi** (FMEDA). .ioc/gpio.c tüm pinleri tanımlıyor (CLK_EN boot'ta HIGH ✓); bsp_pins.h alias'ları tam (CARD-0.2). Eksik: uygulama tarafı ERRB/INT_B/FLT_TEMP kesme işleme. CD_IRQ=PA0 kullanılamıyor (EXTI0 hattı BLE_EVENT PB0'da)
-- **AÇIK BUG (MANUAL-3):** adc.c rank 2/3'e kanal atanmamış → 3 rank da PC0 örnekliyor; VCC_FB/I_FB SAHTE veri. .ioc'ta Rank2=IN13, Rank3=IN14 + PC1 (IN2) eklenecek
+- ADC düzeni (regenerate 2026-06-12, bug kapandı): Rank1=IN1/PC0 diyot#1, Rank2=IN2/PC1 diyot#2, Rank3=IN11/PC4 VCC_FB, Rank4=IN12/PC5 I_FB; ADC_RANK_COUNT=4. NOT: PIN_MAPPING.xlsx'in IN13/IN14 bilgisi HATALIYDI — kanal no'larında CubeMX/datasheet otorite
 - **Sıcaklık mimarisi (KULLANICI TEYİTLİ):** Kompanzasyon = PC0/PC1 **1N4148 diyotlar** (sensör içi; datasheet: `__TI_DATASHEETS\1N914-D.PDF` 1N4x48 dahil) — temp_diode.c modeli doğru, PC1 kanalı eklenecek. **TMP108 = yalnız ortam sıcaklığı**, T_HIGH=60 °C alert → FLT_TEMP# (PB5) kesmesi. TMP108 kompanzasyonda KULLANILMAZ, failover da yapılmaz
 - LCD: BDS154S10Z0TG01 = **ST7789V** 240×240 SPI (datasheet teyitli) — lcd400.c uyumlu
 - BLE modülü AT komutlu (DreamLNK DL-CC2340-B, CC2340R5); USART3 PC10/PC11; sürücü YOK

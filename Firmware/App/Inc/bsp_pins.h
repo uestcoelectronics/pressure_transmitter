@@ -100,20 +100,17 @@ extern TIM_HandleTypeDef  htim1;
 #define TEST_MODE_PIN      TEST_MODE_Pin
 
 /* -------------------------------------------------------------------------- */
-/* ADC scan order — CubeMX'te ayarlanan rank sırasıyla aynı:                  */
-/*   Rank 1 → ADC1_IN1   (PC0)   1N4148 kompanzasyon diyodu (TMP_ADC1)        */
-/*   Rank 2 → ADC1_IN13  (PC4)   VCC feedback                                 */
-/*   Rank 3 → ADC1_IN14  (PC5)   INA190 loop current                          */
-/*                                                                            */
-/* !! BİLİNEN SORUN (CubeMX/.ioc — MANUAL-3 ile düzeltilecek):                */
-/*    adc.c rank 2/3 için sConfig.Channel atamıyor → üç rank da IN1 örnekliyor.*/
-/*    .ioc'ta Rank2=IN13, Rank3=IN14 atanmalı; ayrıca Rank için PC1 (IN2,     */
-/*    TMP_ADC2 ikinci 1N4148) eklenmeli → ADC_RANK_COUNT o zaman 4 olur.      */
+/* ADC scan order — CubeMX rank sırasıyla aynı (regenerate 2026-06-12):       */
+/*   Rank 1 → ADC1_IN1   (PC0)   1N4148 kompanzasyon diyodu #1 (TMP_ADC1)     */
+/*   Rank 2 → ADC1_IN2   (PC1)   1N4148 kompanzasyon diyodu #2 (TMP_ADC2)     */
+/*   Rank 3 → ADC1_IN11  (PC4)   VCC feedback                                 */
+/*   Rank 4 → ADC1_IN12  (PC5)   INA190 loop current                          */
 /* -------------------------------------------------------------------------- */
 #define ADC_RANK_TDIODE       0
-#define ADC_RANK_VCC_FB       1
-#define ADC_RANK_ILOOP_FB     2
-#define ADC_RANK_COUNT        3
+#define ADC_RANK_TDIODE2      1
+#define ADC_RANK_VCC_FB       2
+#define ADC_RANK_ILOOP_FB     3
+#define ADC_RANK_COUNT        4
 
 /* -------------------------------------------------------------------------- */
 /* Referans gerilimleri ve ölçek                                               */

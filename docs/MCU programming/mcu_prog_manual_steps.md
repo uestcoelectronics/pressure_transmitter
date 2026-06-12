@@ -26,7 +26,7 @@
 **What Claude needs back:** 5 maddenin değerleri (metin olarak yeterli)
 
 ## MANUAL-3 — CubeMX .ioc değişiklikleri (gerektiğinde)
-**Status:** [ ] Waiting (CARD-1.3 sırasında aktifleşir)
+**Status:** [x] Done (2026-06-12 — kullanıcı regenerate etti: 4 kanal IN1/IN2/IN11/IN12, rank kanal bug'ı düzeldi; Claude diff kontrolü PASS, USER CODE korunmuş)
 **Blocking:** YES → CARD-1.3
 **Tool:** STM32CubeMX
 **Added by:** BOOTSTRAP-01

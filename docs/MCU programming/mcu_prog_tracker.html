@@ -116,7 +116,7 @@ const D = {
   ],
 
   openRisks: [
-    { risk: "ADC rank 2/3 kanal atanmamış → VCC_FB/I_FB okunmuyor", severity: "HIGH", mitigation: "MANUAL-3: .ioc'ta Rank2=IN13, Rank3=IN14 + PC1 ekle" },
+    { risk: "PIN_MAPPING.xlsx AF kolonunda hatalar olabilir (IN13/14 örneği)", severity: "LOW", mitigation: "Kanal/AF no'larında CubeMX + datasheet otorite" },
     { risk: "FDC ERRB/INT_B kesmeleri uygulamada işlenmiyor",    severity: "MEDIUM", mitigation: "CARD-1.1" },
     { risk: "TMP108 ortam alert'i ve PC1 diyot kanalı eksik",    severity: "MEDIUM", mitigation: "CARD-1.2/1.3/1.4" },
     { risk: "TPS3851 pencere ihlali → reset döngüsü",            severity: "MEDIUM", mitigation: "CARD-6.1 zamanlama analizi" },
@@ -135,7 +135,6 @@ const D = {
   manualSteps: [
     { n: 1, title: "Donanım test düzeneği (ST-Link + 24V + 250Ω)", blocking: false, tool: "Donanım",    status: "waiting" },
     { n: 2, title: "Şema teyitleri (diyot bias, ADDR, R_SET, kristaller)", blocking: true, tool: "PDF/Altium", status: "waiting" },
-    { n: 3, title: "CubeMX .ioc: ADC rank kanal BUG FIX + PC1 ekle", blocking: true, tool: "STM32CubeMX", status: "waiting" },
     { n: 5, title: "DL-CC2340-B datasheet indir",                  blocking: true,  tool: "Browser",     status: "waiting" },
   ],
 
@@ -149,8 +148,8 @@ const D = {
   ],
 
   lastChangedFiles: [
-    "Firmware/App/Inc/bsp_pins.h — 7 eksik alias + ADC bug notu (CARD-0.2)",
-    ".gitignore — yeni (CARD-0.3)",
+    "Firmware/Core/Src/adc.c + .ioc — CubeMX regenerate, 4 kanal (MANUAL-3)",
+    "Firmware/App/Inc/bsp_pins.h — ADC_RANK_TDIODE2, COUNT=4, IN11/IN12",
     "Firmware/App/Src/cal_storage.c — flash DOUBLEWORD fix (CARD-0.1)",
   ],
 
@@ -159,9 +158,10 @@ const D = {
     { date: "2026-06-12", id: "CORRECTION-01", type: "Alignment",  summary: "Kullanıcı teyidi: kompanzasyon = 1N4148 diyotlar (PC0/PC1); TMP108 = yalnız ortam + 60°C alert → FLT_TEMP#. Kartlar 1.2/1.3/1.4 ve roadmap P1 güncellendi." },
     { date: "2026-06-12", id: "CARD-0.1",      type: "Execute",    summary: "Build fix: cal_save QUADWORD → DOUBLEWORD (8 bayt, uint64_t hizalı tampon). Build PASS: 0 hata, 0 uyarı. Seviye 2." },
     { date: "2026-06-12", id: "CARD-0.2/0.3",  type: "Execute",    summary: "Git init (main, e2120fe). bsp_pins.h: 7 alias eklendi. BULGU: adc.c rank 2/3 kanal atanmamış (hep PC0) → MANUAL-3'e bug fix eklendi. P0 tamam." },
+    { date: "2026-06-12", id: "MANUAL-3",      type: "Execute",    summary: "Kullanıcı CubeMX regenerate: ADC 4 kanal (IN1/IN2/IN11/IN12) — bug kapandı. bsp_pins ADC_RANK güncellendi (COUNT=4). PC4/PC5=IN11/IN12 (pin map IN13/14 hatalıydı). Build PASS." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-1.1  (FDC2214 uygulama tarafı bring-up). Paralel: MANUAL-3 CubeMX ADC düzeltmesini yap ve haber ver.",
+  nextPrompt: "/ease-me execute CARD-1.1  (FDC2214 uygulama tarafı bring-up: ERRB/INT_B kesme işleme, SD/CLK_EN sıralaması, I2C adres tanısı)",
 };
 </script>
 
