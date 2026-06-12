@@ -68,8 +68,10 @@ static float dC_to_pressure(int32_t dC, const cal_params_t *c, float t_celsius)
     if (span == 0) return c->p_min;
     float frac = (float)(dC - c->cap_at_zero) / (float)span;
     float p    = c->p_min + frac * (c->p_max - c->p_min);
-    /* Sıcaklık kompansasyonu */
-    p -= c->k_t * (t_celsius - c->t_ref);
+    /* Sıcaklık kompansasyonu v2: zero (offset) + span (gain, okumayla
+       orantılı). k_t_span=0 → v1 davranışı.                                */
+    float dT = t_celsius - c->t_ref;
+    p -= (c->k_t_zero + c->k_t_span * frac) * dT;
     return p;
 }
 
@@ -102,7 +104,7 @@ static void render_normal(float p, float t, float ma)
 static void render_menu(int idx, const char *label)
 {
     char line[24];
-    snprintf(line, sizeof line, "MENU %d/10", idx + 1);
+    snprintf(line, sizeof line, "MENU %d/11", idx + 1);  /* MI__COUNT ile senkron */
     lcd_write_line(0, line);
     lcd_write_line(1, label);
     lcd_write_line(2, "UP/DN: navigate");
@@ -134,6 +136,8 @@ void pressure_app_init(void)
 {
     /* Tüm output GPIO'lar safe default'larda (boot LOW). */
     cal_init();
+    /* vf25/tc'nin tek kaynağı cal_params — runtime'a yükle (v2 persistans) */
+    temp_diode_set_calibration(cal_get()->vf25_mv, cal_get()->tc_mv_c);
     buttons_init();
     sm_init();
 

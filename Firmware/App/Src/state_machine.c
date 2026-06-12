@@ -14,12 +14,13 @@ typedef enum {
     MI_P_MIN,
     MI_P_MAX,
     MI_DAMPING,
-    MI_KT,
+    MI_KT,            /* k_T zero (offset) */
+    MI_KT_SPAN,       /* k_T span (gain)   */
     MI_VF25,
     MI_TC,
     MI_SAVE_EXIT,
     MI_EXIT,
-    MI__COUNT
+    MI__COUNT         /* pressure_app render_menu "/11" ile senkron tut */
 } menu_item_t;
 
 static const char *MENU_LABELS[MI__COUNT] = {
@@ -28,7 +29,8 @@ static const char *MENU_LABELS[MI__COUNT] = {
     "P_min",
     "P_max",
     "Damping (s)",
-    "k_T (bar/C)",
+    "kT zero (bar/C)",
+    "kT span (bar/C)",
     "Vf25 (mV)",
     "TC (mV/C)",
     "Save & Exit",
@@ -80,9 +82,10 @@ static void enter_edit(menu_item_t mi)
         case MI_P_MIN:    s_edit_val = c->p_min;     s_edit_step = 0.1f;  break;
         case MI_P_MAX:    s_edit_val = c->p_max;     s_edit_step = 0.5f;  break;
         case MI_DAMPING:  s_edit_val = c->damping_s; s_edit_step = 0.1f;  break;
-        case MI_KT:       s_edit_val = c->k_t;       s_edit_step = 0.001f;break;
-        case MI_VF25:     s_edit_val = temp_diode_get_vf25_mv(); s_edit_step = 1.0f; break;
-        case MI_TC:       s_edit_val = temp_diode_get_tc_mv_c(); s_edit_step = 0.1f; break;
+        case MI_KT:       s_edit_val = c->k_t_zero;  s_edit_step = 0.001f;break;
+        case MI_KT_SPAN:  s_edit_val = c->k_t_span;  s_edit_step = 0.001f;break;
+        case MI_VF25:     s_edit_val = c->vf25_mv;   s_edit_step = 1.0f;  break;
+        case MI_TC:       s_edit_val = c->tc_mv_c;   s_edit_step = 0.1f;  break;
         default: break;
     }
     s_state = SM_EDIT_FLOAT;
@@ -95,11 +98,13 @@ static void commit_edit(void)
         case MI_P_MIN:    c->p_min     = s_edit_val; break;
         case MI_P_MAX:    c->p_max     = s_edit_val; break;
         case MI_DAMPING:  c->damping_s = s_edit_val; break;
-        case MI_KT:       c->k_t       = s_edit_val; break;
-        case MI_VF25:     temp_diode_set_calibration(s_edit_val,
-                                                     temp_diode_get_tc_mv_c()); break;
-        case MI_TC:       temp_diode_set_calibration(temp_diode_get_vf25_mv(),
-                                                     s_edit_val); break;
+        case MI_KT:       c->k_t_zero  = s_edit_val; break;
+        case MI_KT_SPAN:  c->k_t_span  = s_edit_val; break;
+        /* vf25/tc tek kaynağı cal_params; runtime'ı da senkronla            */
+        case MI_VF25:     c->vf25_mv   = s_edit_val;
+                          temp_diode_set_calibration(c->vf25_mv, c->tc_mv_c); break;
+        case MI_TC:       c->tc_mv_c   = s_edit_val;
+                          temp_diode_set_calibration(c->vf25_mv, c->tc_mv_c); break;
         default: break;
     }
 }
@@ -137,6 +142,7 @@ void sm_handle_event(btn_event_t e)
             } else if (mi == MI_EXIT) {
                 /* RAM kopyasını flash'tan yeniden yükle (değişiklikleri iptal et) */
                 cal_init();
+                temp_diode_set_calibration(c->vf25_mv, c->tc_mv_c);
                 s_state = SM_NORMAL;
             } else {
                 enter_edit(mi);

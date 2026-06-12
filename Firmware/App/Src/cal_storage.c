@@ -18,6 +18,24 @@ typedef struct __attribute__((packed)) {
     uint32_t      crc32;
 } cal_record_t;
 
+/* v1 payload düzeni (migrasyon için dondurulmuş kopya — DEĞİŞTİRME)          */
+typedef struct __attribute__((packed)) {
+    int32_t  cap_at_zero;
+    int32_t  cap_at_span;
+    float    p_min;
+    float    p_max;
+    float    k_t;              /* v2'de k_t_zero oldu */
+    float    t_ref;
+    float    damping_s;
+} cal_params_v1_t;
+
+typedef struct __attribute__((packed)) {
+    uint32_t         magic;
+    uint32_t         version;
+    cal_params_v1_t  params;
+    uint32_t         crc32;
+} cal_record_v1_t;
+
 /* RAM'deki aktif parametreler */
 static cal_params_t s_cal;
 
@@ -46,9 +64,12 @@ void cal_load_defaults(void)
     s_cal.cap_at_span = 1000000;     /* yer tutucu — kalibrasyona kadar */
     s_cal.p_min       = 0.0f;
     s_cal.p_max       = 10.0f;       /* default 0-10 bar */
-    s_cal.k_t         = 0.0f;        /* devre dışı */
+    s_cal.k_t_zero    = 0.0f;        /* devre dışı */
     s_cal.t_ref       = 25.0f;
     s_cal.damping_s   = 0.5f;
+    s_cal.k_t_span    = 0.0f;        /* devre dışı */
+    s_cal.vf25_mv     = 600.0f;      /* 1N4148 @ ~100 µA */
+    s_cal.tc_mv_c     = -2.0f;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -65,6 +86,26 @@ void cal_init(void)
             return;
         }
     }
+
+    /* v1 → v2 migrasyonu: eski kayıt geçerliyse alanları taşı, yenileri
+       default bırak. (Bir sonraki Save & Exit v2 olarak yazar.)             */
+    const cal_record_v1_t *rec1 = (const cal_record_v1_t*)CAL_FLASH_ADDR;
+    if (rec1->magic == CAL_MAGIC && rec1->version == 1u) {
+        uint32_t crc = crc32_calc((const uint8_t*)&rec1->params,
+                                  sizeof(cal_params_v1_t));
+        if (crc == rec1->crc32) {
+            cal_load_defaults();                 /* yeni alanlar default     */
+            s_cal.cap_at_zero = rec1->params.cap_at_zero;
+            s_cal.cap_at_span = rec1->params.cap_at_span;
+            s_cal.p_min       = rec1->params.p_min;
+            s_cal.p_max       = rec1->params.p_max;
+            s_cal.k_t_zero    = rec1->params.k_t;
+            s_cal.t_ref       = rec1->params.t_ref;
+            s_cal.damping_s   = rec1->params.damping_s;
+            return;
+        }
+    }
+
     cal_load_defaults();
 }
 

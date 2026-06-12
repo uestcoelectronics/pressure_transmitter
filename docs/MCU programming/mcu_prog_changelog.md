@@ -249,3 +249,31 @@
 **Risks Resolved:** None
 
 **Next Action:** CARD-2.1 — kompanzasyon modeli v2 + flash format v2 (k_t_zero/k_t_span + vf25/tc persistansı)
+
+## 2026-06-12 | Execute | Task: CARD-2.1
+
+**Task ID:** CARD-2.1
+**Type:** Execute
+**Status:** Complete (kod); donanım doğrulaması MANUAL-4 bekliyor
+
+**Files Created:** Yok
+**Files Modified:**
+- `App/Inc/cal_storage.h` — CAL_VERSION=2; cal_params_t: k_t→k_t_zero, yeni k_t_span/vf25_mv/tc_mv_c; model dokümantasyonu
+- `App/Src/cal_storage.c` — v1 layout dondurulmuş legacy struct; cal_init'te v2 oku → olmadı v1 CRC doğrula + alan taşı + yeniler default → olmadı defaults; defaults'a yeni alanlar
+- `App/Src/state_machine.c` — MI_KT_SPAN menü öğesi (11 öğe); kT zero/span etiketleri; Vf25/TC artık cal_params'tan okunup yazılıyor (tek kaynak) + runtime senkron; Exit(no save) reload'da temp_diode senkronu
+- `App/Src/pressure_app.c` — kompanzasyon v2: P −= (k_t_zero + k_t_span·frac)·ΔT; boot'ta vf25/tc'yi flash'tan temp_diode'a yükleme; MENU /11
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+- Statik kontrol: k_t_span=0 ile v1 davranış birebir korunuyor; v1 kaydı migrasyonla kayıpsız taşınıyor
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda v1→v2 migrasyon (v1 kayıtlı cihazda boot), Vf25 değişikliğinin reboot sonrası kalıcılığı, iki sıcaklıkta kompanzasyon doğrulaması — MANUAL-4
+
+**Result:** Kompanzasyon artık zero (offset) ve span (gain) kaymalarını ayrı katsayılarla düzeltiyor; menüden ayarlanan Vf25/TC reboot'ta artık kaybolmuyor (flash v2). Eski v1 kalibrasyon kayıtları ilk boot'ta otomatik taşınır, sonraki Save v2 yazar.
+
+**Risks Introduced:** Flash'ta v2 kayıt varken eski (v1) firmware'e geri dönülürse kayıt okunamaz → defaults (bilinçli; sürüm geri dönüşünde yeniden kalibrasyon gerekir)
+**Risks Resolved:** Vf25/TC reboot kaybı (CARD-1.3 notu) → kapandı
+
+**Next Action:** CARD-2.2 — kalibrasyon iş akışı sağlamlaştırma (stabilite eşiği, geçersiz kombinasyon reddi)

@@ -104,3 +104,20 @@
 **Diff budget:** 1 değişen, 0 yeni.
 **Done criteria:** temiz build; öncelik zinciri + rol dokümantasyonu kodda.
 **Stop conditions:** —
+
+## TASK PACKET CARD-2.1 — 2026-06-12
+
+**Goal:** Kompanzasyon modeli v2 (zero+span katsayıları) + flash format v2 (vf25/tc persistansı) + v1→v2 migrasyon.
+**Non-goals:** Kalibrasyon iş akışı sağlamlaştırma (CARD-2.2); >2 nokta kalibrasyon.
+**Current state:** v1: tek k_t; vf25/tc yalnız RAM (reboot'ta kayıp); menü 10 öğe; dC_to_pressure tek katsayılı.
+**Model v2:** ΔT = T − T_ref; P = P_raw − (k_t_zero + k_t_span·frac)·ΔT  (frac = ham okuma oranı 0..1 → zero kayması her yerde, span kayması skala ile orantılı).
+**Exact files inspected:** cal_storage.h (tam), cal_storage.c (tam), state_machine.c (tam), pressure_app.c (bu oturumda tam).
+**Files allowed to edit:** cal_storage.h/c, state_machine.c, pressure_app.c (4 — kartta önceden onaylı). state_machine.h'a DOKUNULMAYACAK (menü sayısı pressure_app'te "/11" senkron yorumuyla).
+**Migrasyon:** cal_init: version==2 → yükle; version==1 + v1-boyutlu CRC doğru → alanları kopyala, yeniler default (k_t_span=0, vf25=600, tc=-2); aksi → defaults. v1 layout cal_storage.c içinde legacy struct olarak korunur.
+**Senkron kuralı:** vf25/tc'nin tek kaynağı cal_params; temp_diode_set_calibration boot'ta, menü commit'inde ve Exit(no save) reload'unda çağrılır.
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda: v1 kayıtlı cihazda boot → değerler korunmuş + yeni alanlar default; Vf25 değiştir + Save & Exit + reboot → kalıcı.
+**Rollback plan:** git checkout -- <4 dosya>. Flash'taki eski v1 kaydı migrasyonla okunabilir kalır (geri dönüş güvenli).
+**Diff budget:** 4 değişen (onaylı), 0 yeni.
+**Done criteria:** temiz build; v2 struct + migrasyon + model + menü öğeleri kodda; donanım MANUAL-4.
+**Stop conditions:** state_machine.h veya başka dosya gerekirse dur.
