@@ -34,7 +34,7 @@
 | Build baseline | **complete** — CARD-0.1 ile düzeltildi (DOUBLEWORD); temiz build, 0 uyarı |
 | FDC2214 sürücü | complete (kod) — CARD-1.1: sıralama+adres tespiti+ERRB/INT_B; donanım testi MANUAL-4 |
 | Sıcaklık ölçümü | complete (kod) — çift 1N4148 + TMP108 ortam/alert; donanım testi MANUAL-4; rol entegrasyonu CARD-1.4 |
-| Kalibrasyon + flash | complete (build fix sonrası) — donanım testi yok |
+| Kalibrasyon + flash | complete (kod) — v2 format + migrasyon + kompanzasyon v2; sağlamlaştırma CARD-2.2; donanım testi yok |
 | LCD + menü | complete (kod) — donanım testi yok, iyileştirme planlı |
 | 4-20 loop sürücü | complete (kod) — donanım testi yok |
 | BLE | not started |
@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-1.4 | **Tarih:** 2026-06-12 | **Commit:** b70c002 — **P1 kod tarafı TAMAM**
+- **Task ID:** CARD-2.1 | **Tarih:** 2026-06-12 | **Commit:** 5159b8a
+- **Özet:** Kompanzasyon v2: k_t_zero+k_t_span·frac modeli; flash format v2 (vf25/tc persistansı) + v1→v2 migrasyon; menü 11 öğe (kT span eklendi); Vf25/TC tek kaynak cal_params + boot/commit/reload senkronu. Build PASS 0/0. Risk notu: v2 kayıt sonrası eski firmware'e dönüş = defaults.
+- **Önceki:** CARD-1.4 | Commit: b70c002 — **P1 kod tarafı TAMAM**
 - **Özet:** Rol entegrasyonu: pressure_app'e sıcaklık mimarisi dokümantasyon bloğu; ekran önceliği *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK. Politika: diyot tutarsızlığı degraded-but-operational (ölçüm durmaz); alarm-low yalnız FDC hatasında.
 - **Önceki:** CARD-1.3 | **Tarih:** 2026-06-12
 - **Özet:** 1N4148 çift kanal: temp_diode.c/h rework — PC0+PC1 okuma, kanal geçerlilik (V_f 200–1000 mV), |T1−T2|≤5 °C çapraz makullük, tutarlıysa ortalama / tek kanal fallback / son-değer tutma, temp_diode_is_consistent() tanı API'si. Menü bug fix: Vf25/TC edit'i birbirini varsayılana ezmiyor, edit mevcut değerden başlıyor. Build PASS 0/0. NOT: Vf25/TC flash persistansı CARD-2.1 v2 formatına eklendi.
@@ -64,7 +66,7 @@
 
 ## Next Recommended Task
 
-- **CARD-2.1 — Kompanzasyon modeli v2 + flash format v2:** k_t_zero/k_t_span ayrımı, vf25/tc persistansı, v1→v2 migrasyon, menü öğeleri. P2 fazının ilk kartı.
+- **CARD-2.2 — Kalibrasyon iş akışı sağlamlaştırma:** CAL_LIVE'da stabilite göstergesi (ΔC varyans eşiği), kararsızken yakalama reddi, zero≈span reddi, kaydetmeden çıkış uyarısı.
 
 ## Open Risks
 

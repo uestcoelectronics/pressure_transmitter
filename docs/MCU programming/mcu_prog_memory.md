@@ -8,7 +8,7 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 - App katmanı `Firmware/App/` — 8 modül tam yazılı; `Core/` CubeMX üretimi (yalnızca USER CODE blokları düzenlenir)
 - Build: `cd Firmware && cmake --preset Debug && cmake --build build/Debug` (Ninja + arm-none-eabi-gcc 15.2.1)
 - Build temiz (CARD-0.1: flash yazımı DOUBLEWORD'e geçirildi; U3 HAL'de QUADWORD yok)
-- Kalibrasyon: dahili flash page 127 (son 8 KB), CRC32 + magic "CAL0" v1
+- Kalibrasyon: dahili flash page 127 (son 8 KB), CRC32 + magic "CAL0" **v2** (k_t_zero/k_t_span + vf25/tc persistans; v1 otomatik migrate; eski firmware v2'yi okuyamaz)
 - **PIN_MAPPING.xlsx = pin otoritesi** (FMEDA). .ioc/gpio.c tüm pinleri tanımlıyor (CLK_EN boot'ta HIGH ✓); bsp_pins.h alias'ları tam (CARD-0.2). Eksik: uygulama tarafı ERRB/INT_B/FLT_TEMP kesme işleme. CD_IRQ=PA0 kullanılamıyor (EXTI0 hattı BLE_EVENT PB0'da)
 - ADC düzeni (regenerate 2026-06-12, bug kapandı): Rank1=IN1/PC0 diyot#1, Rank2=IN2/PC1 diyot#2, Rank3=IN11/PC4 VCC_FB, Rank4=IN12/PC5 I_FB; ADC_RANK_COUNT=4. NOT: PIN_MAPPING.xlsx'in IN13/IN14 bilgisi HATALIYDI — kanal no'larında CubeMX/datasheet otorite
 - **Sıcaklık mimarisi (KULLANICI TEYİTLİ):** Kompanzasyon = PC0/PC1 **1N4148 diyotlar** (sensör içi; datasheet: `__TI_DATASHEETS\1N914-D.PDF` 1N4x48 dahil) — temp_diode.c modeli doğru, PC1 kanalı eklenecek. **TMP108 = yalnız ortam sıcaklığı**, T_HIGH=60 °C alert → FLT_TEMP# (PB5) kesmesi. TMP108 kompanzasyonda KULLANILMAZ, failover da yapılmaz
@@ -31,8 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P1 kod tarafı TAMAM (1.1-1.4; donanım doğrulaması MANUAL-4 bekliyor) | **Son:** CARD-1.4 (b70c002)
-- **Sıradaki:** CARD-2.1 kompanzasyon v2 + flash format v2 (k_t zero/span, vf25/tc persistans, migrasyon)
+- **Faz:** P2 in progress | **Son:** CARD-2.1 kompanzasyon+format v2 (5159b8a)
+- **Sıradaki:** CARD-2.2 kalibrasyon sağlamlaştırma (stabilite eşiği, geçersiz kombinasyon reddi)
+- Kompanzasyon: P −= (k_t_zero + k_t_span·frac)·ΔT; menü 11 öğe ("/11" pressure_app'te hardcoded — MI__COUNT ile senkron tut)
 - Ekran satır 3 önceliği: *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK; alarm-low yalnız FDC hatası
 - temp_diode: çift kanal arbitrasyon (geçerlilik 200–1000 mV, |ΔT|≤5°C, ortalama/fallback/son-değer), is_consistent() tanısı; Vf25/TC flash persistansı CARD-2.1'de
 - TMP108: adres tarama 0x48-0x4B, comparator HYS=4°C (60→~56°C), FLT_TEMP# EXTI main.c'de bağlı, "AMB HOT" ekranda
