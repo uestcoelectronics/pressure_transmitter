@@ -225,3 +225,27 @@
 **Risks Resolved:** Menü Vf25/TC karşılıklı ezme bug'ı (önceden kayıtsızdı — bulunup kapatıldı)
 
 **Next Action:** CARD-1.4 — sıcaklık rolleri entegrasyonu (tanı bayrağının ekran/alarm yoluna bağlanması)
+
+## 2026-06-12 | Execute | Task: CARD-1.4
+
+**Task ID:** CARD-1.4
+**Type:** Execute
+**Status:** Complete (kod) — P1 fazı kod tarafı TAMAMLANDI
+
+**Files Created:** Yok
+**Files Modified:**
+- `Firmware/App/Src/pressure_app.c` — dosya başına sıcaklık mimarisi rol bloğu (diyot=kompanzasyon, TMP108=ortam, failover yok, alarm-low yalnız FDC hatasında); ekran satır 3 önceliğine "TDIODE ERR" eklendi (*FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK)
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda diyot kopma → TDIODE ERR senaryosu — MANUAL-4
+
+**Result:** Sıcaklık alt sistemi rolleri kodda belgeli ve tanı yolu bağlı. Politika (D2 uzantısı): diyot tutarsızlığı degraded-but-operational — ölçüm/çıkış durmaz, uyarı gösterilir; alarm-low yalnız basınç sensörü hatasında. P1'in dört kartı da kod düzeyinde tamam; faz donanım doğrulamasını (MANUAL-4) bekliyor.
+
+**Risks Introduced:** Boot'ta ilk ADC taraması tamamlanana dek (~100-350 ms) "TDIODE ERR" kısa süre görünebilir — kozmetik; gerekirse CARD-3.2'de açılış maskesi
+**Risks Resolved:** None
+
+**Next Action:** CARD-2.1 — kompanzasyon modeli v2 + flash format v2 (k_t_zero/k_t_span + vf25/tc persistansı)

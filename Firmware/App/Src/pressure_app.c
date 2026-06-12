@@ -17,6 +17,22 @@
 #include <math.h>
 
 /* -------------------------------------------------------------------------- */
+/* SICAKLIK MİMARİSİ — rol ayrımı (kullanıcı teyitli, 2026-06-12):             */
+/*                                                                            */
+/*   temp_diode (2× 1N4148, PC0/PC1, sensör modülü içinde)                    */
+/*     → YALNIZ basınç kompanzasyonu. Çift kanal arbitrasyonlu; tutarsızlıkta */
+/*       son tutarlı değerle devam eder (degraded-but-operational): ölçüm ve  */
+/*       4-20 mA çıkışı DURMAZ, ekranda "TDIODE ERR" gösterilir.              */
+/*                                                                            */
+/*   tmp108 (B701, I2C, kart üstü)                                            */
+/*     → YALNIZ ortam sıcaklığı izleme + 60 °C alert (FLT_TEMP#/PB5 EXTI).    */
+/*       Kompanzasyona girmez; diyotlara failover YAPILMAZ (farklı fiziksel   */
+/*       konum → yanlış kompanzasyon üretir). Alarmda ölçüm devam eder.       */
+/*                                                                            */
+/*   Alarm-low (3.6 mA) yalnız basınç sensörü (FDC2214) hatasında sürülür.    */
+/* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
 /* ADC dönüştürme — 3 kanal, regular sequence (PC0 → PC4 → PC5)                */
 /* -------------------------------------------------------------------------- */
 static uint16_t s_adc_buf[ADC_RANK_COUNT];
@@ -76,10 +92,11 @@ static void render_normal(float p, float t, float ma)
     snprintf(line, sizeof line, "P=%7.3f bar     ", (double)p); lcd_write_line(0, line);
     snprintf(line, sizeof line, "I=%5.2f mA       ", (double)ma); lcd_write_line(1, line);
     snprintf(line, sizeof line, "T=%5.1f C        ", (double)t); lcd_write_line(2, line);
-    lcd_write_line(3, loop_is_in_fault()   ? "*FAULT*"    :
-                       fdc2214_has_error() ? "SENSOR ERR" :
-                       tmp108_overtemp()   ? "AMB HOT >60C" :
-                       loop_is_enabled()   ? "OK"         : "LOOP DISABLED");
+    lcd_write_line(3, loop_is_in_fault()             ? "*FAULT*"      :
+                       fdc2214_has_error()           ? "SENSOR ERR"   :
+                       !temp_diode_is_consistent()   ? "TDIODE ERR"   :
+                       tmp108_overtemp()             ? "AMB HOT >60C" :
+                       loop_is_enabled()             ? "OK"           : "LOOP DISABLED");
 }
 
 static void render_menu(int idx, const char *label)

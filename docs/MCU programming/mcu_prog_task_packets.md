@@ -88,3 +88,19 @@
 **Diff budget:** 4 değişen (onaylı), 0 yeni.
 **Done criteria:** temiz build; çift kanal + makullük + bayrak kodda; menü bug fix; donanım MANUAL-4.
 **Stop conditions:** bsp_pins/Core değişikliği gerekirse dur.
+
+## TASK PACKET CARD-1.4 — 2026-06-12
+
+**Goal:** Sıcaklık rollerinin entegrasyonu: diyot tutarsızlık bayrağı → ekran tanı yolu; rol ayrımının pressure_app'te belgelenmesi.
+**Non-goals:** Kompanzasyon matematiği (CARD-2.1); TMP108→diyot failover (bilinçli YOK — farklı fiziksel konum).
+**Current state:** temp_diode arbitrasyonu + is_consistent() hazır (CARD-1.3); bayrak hiçbir yerde gösterilmiyor. TMP108 AMB HOT ekranda (CARD-1.2).
+**Politika kararı (D2 uzantısı):** Diyot tutarsızlığı ölçümü DURDURMAZ ve alarm akımı tetiklemez — kompanzasyon son tutarlı/tek kanal değerle sürer, ekranda "TDIODE ERR" uyarısı (degraded-but-operational). Alarm-low yalnız basınç sensörü (FDC) hatasında.
+**Exact files inspected:** pressure_app.c (bu oturumda tam + CARD-1.3 diff'i), temp_diode.h (bu oturumda yazıldı).
+**Files allowed to edit:** App/Src/pressure_app.c
+**Expected behavior after:** Ekran satır 3 önceliği: *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK; dosya başında sıcaklık mimarisi rol bloğu.
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda bir diyot kanalı koparılınca "TDIODE ERR" + ölçüm devam; geri takılınca kaybolur.
+**Rollback plan:** git checkout -- Firmware/App/Src/pressure_app.c
+**Diff budget:** 1 değişen, 0 yeni.
+**Done criteria:** temiz build; öncelik zinciri + rol dokümantasyonu kodda.
+**Stop conditions:** —
