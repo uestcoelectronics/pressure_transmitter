@@ -96,3 +96,26 @@
 **Risks Resolved:** "Build kırık" (blocked) → kapandı
 
 **Next Action:** CARD-0.2 — bsp_pins.h ↔ PIN_MAPPING mutabakatı; CARD-0.3 git init onayı bekleniyor
+
+## 2026-06-12 | Execute | Task: CARD-0.3 + CARD-0.2
+
+**Task ID:** CARD-0.3, CARD-0.2
+**Type:** Execute
+**Status:** Complete
+
+**Files Created:** `.gitignore`
+**Files Modified:** `Firmware/App/Inc/bsp_pins.h`
+
+**Tests / Validations Run:**
+- `git init -b main` + ilk commit `e2120fe` (392 dosya); CARD-0.2 commit `9dfad89`
+- `gpio.c` + `adc.c` incelemesi (pin haritası çapraz kontrol)
+- `cmake --build build/Debug` → **PASS** (0 error, 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**Result:** Git aktif (yerel, push yok). bsp_pins.h'a 7 eksik alias eklendi: FLT_TEMP (PB5), BLE_PWR_ON/MODE/RESET/EVENT, RST_TI, TEST_MODE; 1N4148 ve IN13/IN14 yorum düzeltmeleri. **Bulgular:** (1) .ioc tüm FMEDA pinlerini zaten içeriyor; FDC_CLK_EN boot'ta HIGH → "sensör saatsiz" riski kapandı; eksik olan uygulama tarafı kesme işleme (CARD-1.1). (2) **ADC BUG:** `adc.c` rank 2/3'e kanal atamıyor → üç rank da PC0; VCC_FB ve loop akım FB hiç okunmuyor → .ioc düzeltmesi MANUAL-3'e eklendi. (3) CD_IRQ (PA0) konfigüre edilemez — EXTI0 hattı BLE_EVENT (PB0) kullanıyor.
+
+**Risks Introduced:** None
+**Risks Resolved:** Git yok (HIGH) → kapandı; FDC saatsiz (HIGH) → kapandı. Yeni risk kaydı: ADC kanal bug'ı (HIGH, MANUAL-3'te çözüm).
+
+**Next Action:** CARD-1.1 (FDC uygulama tarafı) + MANUAL-3 (kullanıcı: CubeMX ADC düzeltmesi)
