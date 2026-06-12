@@ -304,3 +304,30 @@
 **Risks Resolved:** Gürültülü/geçersiz kalibrasyon kabulü riski → kapandı (kod düzeyinde)
 
 **Next Action:** CARD-3.1 (LCD güç sırası) veya CARD-4.1 (loop makullük + NAMUR) — ikisi de bağımsız ilerleyebilir
+
+## 2026-06-13 | Execute | Task: CARD-4.1
+
+**Task ID:** CARD-4.1
+**Type:** Execute
+**Status:** Complete (kod) — P4 fazı kod tarafı TAMAMLANDI
+
+**Files Created:** Yok
+**Files Modified:**
+- `App/Inc/xtr111_loop.h` — NAMUR NE43 sabitleri (3.6/3.8/20.5/21.0); loop_service()/loop_has_deviation() API; transfer fonksiyonu yorumu .c ile senkronlandı (R_SET=1.2 kΩ; eski 15 Ω yorumu yanlıştı)
+- `App/Src/xtr111_loop.c` — **BUG FIX: komut clamp penceresi 3.8..20.5 → 3.6..21.0** (alarm-low 3.6 mA artık gerçekten üretilebiliyor; önceden 3.8'e yuvarlanıyordu); sapma monitörü (|cmd−meas| > 0.3 mA kesintisiz 2 s → bayrak, eşik altı 2 s → otomatik temizleme; alarm bölgesinde devre dışı); FLT fault auto-retry (5 s; FLT pini hâlâ LOW ise erteleme — EXTI kenar kaçırma önlemi)
+- `App/Src/pressure_app.c` — pressure_to_ma NAMUR satürasyonu (aralık dışı → 3.8/20.5); alarm sabiti kullanımı; loop_service() çağrısı (100 ms tik); LED fault VEYA sapmada 5 Hz; ekran önceliğine "LOOP DEV" (SENSOR ERR sonrası)
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+- Statik akış: alarm bölgesinde (cmd < 3.8) sapma monitörü pasif ✓; fault sapmayı bastırır ✓; retry sonrası komut app'in sonraki tikinde yenilenir ✓
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda 4/12/20 mA mutlak doğruluk (multimetre), gerçek 3.6 mA alarm seviyesi, FLT→retry döngüsü, sapma eşiğinin (0.3 mA) INA190 ölçüm gürültüsüne uygunluğu — MANUAL-4
+
+**Result:** Çıkış döngüsü FMEDA A.7 kapalı-çevrim doğrulamasına zemin: komut↔ölçüm sapması sürekli izleniyor (tanı bayrağı çıkışı değiştirmez), NAMUR NE43 seviyeleri standartlaştı, XTR111 fault'u kalıcı kilitlenme yerine güvenli otomatik kurtarmalı. Politika notu: karttaki "SET uzun ile clear" NORMAL'deki menü kısayoluyla çakıştığından 5 s otomatik retry + FLT pin seviyesi kontrolü uygulandı.
+
+**Risks Introduced:** DEV_MAX_MA=0.3 / DEV_TIME_MS=2000 donanımda ayarsız (INA190 gürültüsüne göre); retry döngüsü kalıcı arızada 5 s'de bir LOOP_EN toggle üretir (kabul edilebilir — XTR111 yüksek empedans)
+**Risks Resolved:** Alarm-low 3.6 mA üretilemiyor bug'ı (kayıtsızdı — bulunup kapatıldı); header/c transfer fonksiyonu çelişkisi
+
+**Next Action:** CARD-3.1 — LCD güç sırası + donanım doğrulama (P3)

@@ -80,8 +80,10 @@ static float pressure_to_ma(float p, const cal_params_t *c)
     float span_p = c->p_max - c->p_min;
     if (span_p == 0.0f) return 4.0f;
     float frac = (p - c->p_min) / span_p;
-    if (frac < 0.0f) frac = 0.0f;
-    if (frac > 1.0f) frac = 1.0f;
+    /* NAMUR NE43: aralık dışı ölçüm 4/20'de kesilmez, satürasyon
+       seviyesine taşar (alıcı aralık aşımını ayırt edebilsin).             */
+    if (frac < 0.0f) return LOOP_SAT_LOW_MA;
+    if (frac > 1.0f) return LOOP_SAT_HIGH_MA;
     return 4.0f + frac * 16.0f;
 }
 
@@ -96,6 +98,7 @@ static void render_normal(float p, float t, float ma)
     snprintf(line, sizeof line, "T=%5.1f C        ", (double)t); lcd_write_line(2, line);
     lcd_write_line(3, loop_is_in_fault()             ? "*FAULT*"      :
                        fdc2214_has_error()           ? "SENSOR ERR"   :
+                       loop_has_deviation()          ? "LOOP DEV"     :
                        !temp_diode_is_consistent()   ? "TDIODE ERR"   :
                        tmp108_overtemp()             ? "AMB HOT >60C" :
                        loop_is_enabled()             ? "OK"           : "LOOP DISABLED");
@@ -253,9 +256,12 @@ void pressure_app_loop(void)
             }
         } else if (errb_now || i2c_fail || fdc2214_has_error()) {
             /* Sensör hatası (ERRB veya I2C): alarm-low */
-            if (loop_is_enabled()) loop_set_current_ma(3.6f);
+            if (loop_is_enabled()) loop_set_current_ma(LOOP_ALARM_LOW_MA);
         }
         /* data_ready değilse ve hata yoksa: sadece bu tik atlandı             */
+
+        /* Loop servis: sapma monitörü + fault auto-retry                      */
+        loop_service(now);
     }
 
     /* ---- Ortam sıcaklığı (TMP108, her 1000 ms) ---- */
@@ -300,8 +306,8 @@ void pressure_app_loop(void)
     #endif
     }
 
-    /* ---- Status LED (1 Hz heartbeat, fault'ta 5 Hz) ---- */
-    uint32_t blink = loop_is_in_fault() ? 100 : 500;
+    /* ---- Status LED (1 Hz heartbeat; fault/sapmada 5 Hz) ---- */
+    uint32_t blink = (loop_is_in_fault() || loop_has_deviation()) ? 100 : 500;
     if ((now - t_led) >= blink) {
         t_led = now;
         led_state = !led_state;

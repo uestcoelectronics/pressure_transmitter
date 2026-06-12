@@ -141,3 +141,25 @@
 **Diff budget:** 3 değişen, 0 yeni.
 **Done criteria:** temiz build; stabilite+red+onay akışları kodda; donanım MANUAL-4.
 **Stop conditions:** başka dosya gerekirse dur.
+
+## TASK PACKET CARD-4.1 — 2026-06-13
+
+**Goal:** Loop geri besleme makullüğü (komut↔ölçüm sapma tanısı) + NAMUR NE43 alarm/satürasyon seviyeleri + fault kurtarma politikası.
+**Non-goals:** HART; DAC kalibrasyonu; INA190 kazanç ayarı.
+**Current state / bulunan buglar:**
+1. ma_to_dac_code 3.8 mA alt clamp → loop_set_current_ma(3.6) fiilen 3.8 üretiyor: ALARM-LOW HİÇ ÇIKMIYOR
+2. xtr111_loop.h transfer yorumu (R_SET=15Ω) ↔ .c (R_SET=1.2kΩ, 0.12 V/mA) çelişkili — .c otorite, şema teyidi MANUAL-2'de
+3. Sapma tanısı yok; XTR111 FLT fault'u sonsuza dek latched (kurtarma yok)
+**Tasarım:**
+- NAMUR NE43 sabitleri (header): ALARM_LOW=3.6, SAT_LOW=3.8, SAT_HIGH=20.5, ALARM_HIGH=21.0; komut clamp penceresi 3.6..21.0
+- pressure_to_ma: aralık dışı ölçüm → 3.8 / 20.5 satürasyonu (4/20 değil)
+- Sapma monitörü loop_service(now): enabled+!fault iken |cmd−meas| > 0.3 mA kesintisiz 2 s → deviation bayrağı; eşik altı kesintisiz 2 s → otomatik temizlenir. LED hızlı blink + ekran "LOOP DEV"
+- Fault kurtarma: FLT latch 5 s sonra otomatik retry; retry öncesi FLT pini hâlâ LOW ise erteleme (edge kaçırma önlemi — EXTI yalnız kenar görür)
+**Exact files inspected:** xtr111_loop.c (tam), xtr111_loop.h (tam), pressure_app.c (bu oturumlarda tam).
+**Files allowed to edit:** App/Src/xtr111_loop.c, App/Inc/xtr111_loop.h, App/Src/pressure_app.c (3 — bütçe içinde)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda multimetre: 4/12/20 mA ±0.05; sensör hatasında gerçek 3.6 mA; loop teli koparılınca FLT→safe state→5 s sonra otomatik retry; yük direnci değiştirilerek sapma tanısı.
+**Rollback plan:** git checkout -- <3 dosya>
+**Diff budget:** 3 değişen, 0 yeni.
+**Done criteria:** temiz build; NAMUR seviyeleri + sapma monitörü + retry kodda; donanım MANUAL-4.
+**Stop conditions:** başka dosya gerekirse dur.
