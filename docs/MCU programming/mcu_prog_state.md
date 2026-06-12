@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-1.3 | **Tarih:** 2026-06-12
+- **Task ID:** CARD-1.4 | **Tarih:** 2026-06-12 | **Commit:** b70c002 — **P1 kod tarafı TAMAM**
+- **Özet:** Rol entegrasyonu: pressure_app'e sıcaklık mimarisi dokümantasyon bloğu; ekran önceliği *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK. Politika: diyot tutarsızlığı degraded-but-operational (ölçüm durmaz); alarm-low yalnız FDC hatasında.
+- **Önceki:** CARD-1.3 | **Tarih:** 2026-06-12
 - **Özet:** 1N4148 çift kanal: temp_diode.c/h rework — PC0+PC1 okuma, kanal geçerlilik (V_f 200–1000 mV), |T1−T2|≤5 °C çapraz makullük, tutarlıysa ortalama / tek kanal fallback / son-değer tutma, temp_diode_is_consistent() tanı API'si. Menü bug fix: Vf25/TC edit'i birbirini varsayılana ezmiyor, edit mevcut değerden başlıyor. Build PASS 0/0. NOT: Vf25/TC flash persistansı CARD-2.1 v2 formatına eklendi.
 - **Önceki:** CARD-1.2 (TMP108, 953ea00)
 - **Özet:** TMP108 ortam monitörü: yeni tmp108.c/h — adres taraması (0x48-0x4B), config 0x2230 (continuous, 1 Hz, comparator, aktif-LOW, HYS=4 °C), THIGH=60 °C/TLOW=-50 °C + read-back doğrulama; 1 Hz poll; FLT_TEMP# EXTI → anında overtemp bayrağı, histeresisle otomatik temizlenme; ekran "AMB HOT >60C". Kompanzasyona bağlanmadı (rol ayrımı korunuyor). Build PASS 0/0.
@@ -62,7 +64,7 @@
 
 ## Next Recommended Task
 
-- **CARD-1.4 — Sıcaklık rolleri entegrasyonu:** diyot arıza politikasının (tutarsızlık bayrağı → tanı/ekran) pressure_app'e bağlanması; rollerin belgelenmesi. Küçük kart — CARD-1.3 arbitrasyonun çoğunu yaptı.
+- **CARD-2.1 — Kompanzasyon modeli v2 + flash format v2:** k_t_zero/k_t_span ayrımı, vf25/tc persistansı, v1→v2 migrasyon, menü öğeleri. P2 fazının ilk kartı.
 
 ## Open Risks
 

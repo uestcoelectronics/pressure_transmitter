@@ -78,17 +78,17 @@ const D = {
   repoPath:      "C:\\PressureTransmitter",
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
   branch:        "main",
-  lastCommit:    "07d6df2",
+  lastCommit:    "b70c002",
   lastUpdated:   "2026-06-12",
   implementationAllowed: true,
   validationLevel: 2,
 
-  progress: { done: 6, total: 16 },
+  progress: { done: 7, total: 16 },
 
   phases: [
     { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "complete" },
-    { id: "P1", title: "Sensör Yolu Tamamlama",                status: "in_progress" },
-    { id: "P2", title: "Kalibrasyon & Sıcaklık Kompanzasyonu", status: "not_started" },
+    { id: "P1", title: "Sensör Yolu Tamamlama",                status: "complete" },
+    { id: "P2", title: "Kalibrasyon & Sıcaklık Kompanzasyonu", status: "in_progress" },
     { id: "P3", title: "Ekran & Menü İyileştirme",             status: "not_started" },
     { id: "P4", title: "4-20 mA Döngü Bütünlüğü",              status: "not_started" },
     { id: "P5", title: "Bluetooth Konfigürasyon",              status: "not_started" },
@@ -103,8 +103,8 @@ const D = {
     { id: "CARD-1.1", title: "FDC2214 bring-up (uygulama tarafı)",     status: "done",        blockedBy: null },
     { id: "CARD-1.2", title: "TMP108 ortam izleme + 60°C alert",       status: "done",        blockedBy: null },
     { id: "CARD-1.3", title: "1N4148 diyot modeli + ADC PC1",          status: "done",        blockedBy: null },
-    { id: "CARD-1.4", title: "Sıcaklık rolleri entegrasyonu",          status: "next",        blockedBy: null },
-    { id: "CARD-2.1", title: "Kompanzasyon modeli v2",                 status: "not_started", blockedBy: "CARD-1.4" },
+    { id: "CARD-1.4", title: "Sıcaklık rolleri entegrasyonu",          status: "done",        blockedBy: null },
+    { id: "CARD-2.1", title: "Kompanzasyon modeli v2",                 status: "next",        blockedBy: null },
     { id: "CARD-2.2", title: "Kalibrasyon sağlamlaştırma",             status: "not_started", blockedBy: "CARD-2.1" },
     { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "not_started", blockedBy: "CARD-0.2" },
     { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "not_started", blockedBy: "CARD-2.1" },
@@ -148,8 +148,8 @@ const D = {
   ],
 
   lastChangedFiles: [
+    "Firmware/App/Src/pressure_app.c — rol dokümantasyonu + TDIODE ERR önceliği (CARD-1.4)",
     "Firmware/App/Src/temp_diode.c + .h — çift 1N4148 kanal + arbitrasyon (CARD-1.3)",
-    "Firmware/App/Src/pressure_app.c — temp_diode_update(d1, d2) (CARD-1.3)",
     "Firmware/App/Src/state_machine.c — Vf25/TC edit bug fix (CARD-1.3)",
   ],
 
@@ -162,9 +162,10 @@ const D = {
     { date: "2026-06-12", id: "CARD-1.1",      type: "Execute",    summary: "FDC2214 bring-up: SD/CLK_EN sıralaması, 0x2A→0x2B adres tespiti, ERRB polling + alarm-low + SENSOR ERR, INT_B data-ready. Build PASS. Donanım testi MANUAL-4." },
     { date: "2026-06-12", id: "CARD-1.2",      type: "Execute",    summary: "TMP108 ortam monitörü: adres tarama, THIGH=60°C comparator HYS=4°C + read-back, 1 Hz poll, FLT_TEMP# EXTI, AMB HOT ekranı. Build PASS." },
     { date: "2026-06-12", id: "CARD-1.3",      type: "Execute",    summary: "Çift 1N4148: PC0+PC1, geçerlilik 200-1000 mV, |ΔT|≤5°C makullük, ortalama/fallback/son-değer. Menü Vf25/TC bug fix. Build PASS." },
+    { date: "2026-06-12", id: "CARD-1.4",      type: "Execute",    summary: "Rol entegrasyonu: TDIODE ERR ekran önceliği + mimari dokümantasyon. P1 kod tarafı TAMAM. Build PASS." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-1.4  (sıcaklık rolleri entegrasyonu — diyot arıza politikası + tanı ekranı)",
+  nextPrompt: "/ease-me execute CARD-2.1  (kompanzasyon modeli v2 + flash format v2: k_t zero/span, vf25/tc persistans, migrasyon)",
 };
 </script>
 

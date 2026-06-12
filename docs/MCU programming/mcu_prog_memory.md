@@ -31,8 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P1 in progress | **Son:** CARD-1.3 1N4148 çift kanal (seviye 2)
-- **Sıradaki:** CARD-1.4 rol entegrasyonu (küçük) → P2 kompanzasyon v2
+- **Faz:** P1 kod tarafı TAMAM (1.1-1.4; donanım doğrulaması MANUAL-4 bekliyor) | **Son:** CARD-1.4 (b70c002)
+- **Sıradaki:** CARD-2.1 kompanzasyon v2 + flash format v2 (k_t zero/span, vf25/tc persistans, migrasyon)
+- Ekran satır 3 önceliği: *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK; alarm-low yalnız FDC hatası
 - temp_diode: çift kanal arbitrasyon (geçerlilik 200–1000 mV, |ΔT|≤5°C, ortalama/fallback/son-değer), is_consistent() tanısı; Vf25/TC flash persistansı CARD-2.1'de
 - TMP108: adres tarama 0x48-0x4B, comparator HYS=4°C (60→~56°C), FLT_TEMP# EXTI main.c'de bağlı, "AMB HOT" ekranda
 - Implementation: kart bazında ONAYLI (kullanıcı 2026-06-12)
