@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-2.1 | **Tarih:** 2026-06-12 | **Commit:** 5159b8a
+- **Task ID:** CARD-2.2 | **Tarih:** 2026-06-13 | **Commit:** 42586fa — **P2 kod tarafı TAMAM**
+- **Özet:** Kalibrasyon sağlamlaştırma: stabilite penceresi (8 örnek, p2p≤2000) + yakalama reddi; span ≥10000 kontrolü; Save öncesi cal_validate; Exit çift onay; transient mesaj API'si + ekran entegrasyonu. Build PASS 0/0. Eşikler donanımda ayarlanacak (MANUAL-4).
+- **Önceki:** CARD-2.1 | Commit: 5159b8a
 - **Özet:** Kompanzasyon v2: k_t_zero+k_t_span·frac modeli; flash format v2 (vf25/tc persistansı) + v1→v2 migrasyon; menü 11 öğe (kT span eklendi); Vf25/TC tek kaynak cal_params + boot/commit/reload senkronu. Build PASS 0/0. Risk notu: v2 kayıt sonrası eski firmware'e dönüş = defaults.
 - **Önceki:** CARD-1.4 | Commit: b70c002 — **P1 kod tarafı TAMAM**
 - **Özet:** Rol entegrasyonu: pressure_app'e sıcaklık mimarisi dokümantasyon bloğu; ekran önceliği *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK. Politika: diyot tutarsızlığı degraded-but-operational (ölçüm durmaz); alarm-low yalnız FDC hatasında.
@@ -66,7 +68,7 @@
 
 ## Next Recommended Task
 
-- **CARD-2.2 — Kalibrasyon iş akışı sağlamlaştırma:** CAL_LIVE'da stabilite göstergesi (ΔC varyans eşiği), kararsızken yakalama reddi, zero≈span reddi, kaydetmeden çıkış uyarısı.
+- **CARD-3.1 — LCD güç sırası + donanım doğrulama** (LCD_PWR_ON sıralaması; donanımsız kısmı kodlanabilir) veya **CARD-4.1 — Loop makullük + NAMUR** — ikisi de bağımsız; öneri: 4.1 (donanımsız kodlanabilir kısmı daha büyük).
 
 ## Open Risks
 
