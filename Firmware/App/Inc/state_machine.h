@@ -55,6 +55,14 @@ const char* sm_get_edit_label(void);
 /* sm_update_live(deltaC_raw, pressure_eu) — CAL_LIVE state'inde çağrılır. */
 void        sm_update_live(int32_t deltaC_raw, float pressure_eu);
 
+/* CAL_LIVE: son örnek penceresi dolu ve ΔC peak-to-peak eşik içinde mi?
+ * Yakalama yalnız stabilken kabul edilir.                                  */
+bool        sm_cal_live_stable(void);
+
+/* Transient bilgi mesajı (yakalama reddi, kayıt hatası, çıkış onayı...).
+ * Boş string = mesaj yok. Menü navigasyonunda temizlenir.                  */
+const char* sm_get_info_msg(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -107,7 +107,9 @@ static void render_menu(int idx, const char *label)
     snprintf(line, sizeof line, "MENU %d/11", idx + 1);  /* MI__COUNT ile senkron */
     lcd_write_line(0, line);
     lcd_write_line(1, label);
-    lcd_write_line(2, "UP/DN: navigate");
+    /* Transient mesaj (yakalama/kayıt sonucu, çıkış onayı) varsa göster     */
+    const char *msg = sm_get_info_msg();
+    lcd_write_line(2, msg[0] ? msg : "UP/DN: navigate");
     lcd_write_line(3, "SET: select");
 }
 
@@ -126,7 +128,10 @@ static void render_cal_live(const char *label, int32_t dc, float p)
     lcd_write_line(0, label);
     snprintf(line, sizeof line, "dC=%ld", (long)dc); lcd_write_line(1, line);
     snprintf(line, sizeof line, "P=%6.2f bar", (double)p); lcd_write_line(2, line);
-    lcd_write_line(3, "SET long: capture");
+    /* Yakalama yalnız stabilken kabul edilir; red mesajı öncelikli          */
+    const char *msg = sm_get_info_msg();
+    lcd_write_line(3, msg[0]               ? msg :
+                      sm_cal_live_stable() ? "STABLE: SET long" : "WAIT: unstable..");
 }
 
 /* -------------------------------------------------------------------------- */

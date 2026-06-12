@@ -121,3 +121,23 @@
 **Diff budget:** 4 değişen (onaylı), 0 yeni.
 **Done criteria:** temiz build; v2 struct + migrasyon + model + menü öğeleri kodda; donanım MANUAL-4.
 **Stop conditions:** state_machine.h veya başka dosya gerekirse dur.
+
+## TASK PACKET CARD-2.2 — 2026-06-12
+
+**Goal:** Kalibrasyon iş akışı sağlamlaştırma: stabilite eşiği, geçersiz yakalama/kayıt reddi, kaydetmeden çıkış onayı.
+**Non-goals:** Kompanzasyon matematiği; çok noktalı kalibrasyon; BLE.
+**Current state:** CAL_LIVE her SET-long'da koşulsuz yakalıyor; Save & Exit doğrulamasız; Exit (no save) onayız anında iptal ediyor.
+**Tasarım:**
+- Stabilite: CAL_LIVE'da son 8 örnek (~0.8 s) ΔC peak-to-peak ≤ CAL_STAB_P2P_MAX (2000 count, donanımda ayarlanır) → STABLE; değilse yakalama reddi
+- Span yakalama: |ΔC − cap_at_zero| ≥ CAL_MIN_SPAN_COUNTS (10000) değilse red ("SPAN TOO CLOSE")
+- Save & Exit: |cap_at_span−cap_at_zero| < CAL_MIN_SPAN veya p_max ≤ p_min → kaydetme, "CAL INVALID" mesajı, menüde kal
+- Exit (no save): değişiklik varsa (dirty) ilk SET "Discard? SET again" → ikinci SET iptal eder; dirty değilse direkt çıkış
+- Transient bilgi mesajı API'si: sm_get_info_msg() (menü satır 2'de gösterilir, navigasyonda silinir); sm_cal_live_stable() (CAL_LIVE satır 3: "STABLE SET long" / "WAIT unstable")
+**Exact files inspected:** state_machine.h (tam), state_machine.c (tam, bu oturum), pressure_app.c render fonksiyonları (bu oturum).
+**Files allowed to edit:** App/Inc/state_machine.h, App/Src/state_machine.c, App/Src/pressure_app.c (3 değişen — bütçe içinde)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda: basınç değişirken yakalama denenince red; stabilken yakalama; zero=span ile Save reddi; değişiklik sonrası Exit çift onay.
+**Rollback plan:** git checkout -- <3 dosya>
+**Diff budget:** 3 değişen, 0 yeni.
+**Done criteria:** temiz build; stabilite+red+onay akışları kodda; donanım MANUAL-4.
+**Stop conditions:** başka dosya gerekirse dur.

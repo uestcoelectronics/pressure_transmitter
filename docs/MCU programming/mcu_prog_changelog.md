@@ -277,3 +277,30 @@
 **Risks Resolved:** Vf25/TC reboot kaybı (CARD-1.3 notu) → kapandı
 
 **Next Action:** CARD-2.2 — kalibrasyon iş akışı sağlamlaştırma (stabilite eşiği, geçersiz kombinasyon reddi)
+
+## 2026-06-13 | Execute | Task: CARD-2.2
+
+**Task ID:** CARD-2.2
+**Type:** Execute
+**Status:** Complete (kod) — P2 fazı kod tarafı TAMAMLANDI
+
+**Files Created:** Yok
+**Files Modified:**
+- `App/Inc/state_machine.h` — yeni API: sm_cal_live_stable(), sm_get_info_msg()
+- `App/Src/state_machine.c` — stabilite penceresi (8 örnek ~0.8 s, ΔC p2p ≤ 2000); kararsızken yakalama reddi ("UNSTABLE - WAIT", stabil olunca otomatik temizlenir); span yakalamada |ΔC−zero| ≥ 10000 kontrolü ("SPAN TOO CLOSE"); Save & Exit öncesi cal_validate (ΔC span + p_max>p_min, "CAL INVALID:dC/:P", flash hatasında "FLASH WRITE ERR"); Exit (no save) kirli durumda çift onay ("Discard? SET again"); dirty takibi
+- `App/Src/pressure_app.c` — menü satır 2'de transient mesaj; CAL_LIVE satır 3: "STABLE: SET long" / "WAIT: unstable.." / red mesajı
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+- Statik akış kontrolü: SPAN TOO CLOSE mesajının stabilite auto-clear'ı tarafından silinmesi bug'ı geliştirme sırasında yakalanıp düzeltildi (pointer karşılaştırmalı seçici temizleme)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda stabilite eşiğinin (2000 count) gerçek sensör gürültüsüne uygunluğu — MANUAL-4'te ayarlanacak; UI akışlarının buton testi — MANUAL-4
+
+**Result:** Kalibrasyon iş akışı hataya dayanıklı: gürültülü sinyalde yakalama mümkün değil, zero≈span kaydedilemez, geçersiz P aralığı kaydedilemez, yanlışlıkla değişiklik atma çift onaylı. Eşikler #define ile donanım testinde ayarlanabilir.
+
+**Risks Introduced:** CAL_STAB_P2P_MAX=2000 ve CAL_MIN_SPAN_COUNTS=10000 değerleri gerçek sensör karakteristiğine göre ayarsız — MANUAL-4'te ilk kalibrasyonda gözden geçirilecek
+**Risks Resolved:** Gürültülü/geçersiz kalibrasyon kabulü riski → kapandı (kod düzeyinde)
+
+**Next Action:** CARD-3.1 (LCD güç sırası) veya CARD-4.1 (loop makullük + NAMUR) — ikisi de bağımsız ilerleyebilir
