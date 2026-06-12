@@ -30,10 +30,12 @@
 **Blocking:** YES → CARD-1.3
 **Tool:** STM32CubeMX
 **Added by:** BOOTSTRAP-01
-**Instructions (CARD-1.3 zamanı):**
-1. `Firmware/PressureTransmitter.ioc` aç → ADC1'e IN2 (PC1) ekle, tarama sırası PC0→PC1→PC4→PC5
-2. PD2 (CLK_EN), PB6 (SD) GPIO Output; PB7 (INT_B), PA1 (ERRB), PB5 (FLT_TEMP#) GPIO Input/EXTI tanımlı mı kontrol et — değilse ekle
-3. Generate Code → Claude'a haber ver (regenerate sonrası USER CODE diff kontrolü Claude yapar)
+**Instructions (CARD-1.3 zamanı — tek regenerate'te hepsi):**
+1. `Firmware/PressureTransmitter.ioc` aç → ADC1 Regular Conversion'da:
+   - **BUG DÜZELTMESİ (CARD-0.2'de tespit):** Rank 2 ve Rank 3'e kanal ATANMAMIŞ — `adc.c` üç rank'ta da CHANNEL_1 (PC0) örnekliyor. Rank 2 = **IN13 (PC4 VCC_FB)**, Rank 3 = **IN14 (PC5 Current_OUT_FB)** olarak ata
+   - PC1 → **IN2 (TMP_ADC2, ikinci 1N4148)** yeni rank ekle; hedef sıra: PC0 → PC1 → PC4 → PC5 (Number of Conversions = 4)
+2. ~~GPIO kontrolleri~~ TAMAM (CARD-0.2 teyidi): PD2/PB6 Output, PB7/PA1/PB5 EXTI zaten .ioc'ta tanımlı
+3. Generate Code → Claude'a haber ver (regenerate sonrası USER CODE + App diff kontrolü Claude yapar; ADC_RANK_* sabitleri CARD-1.3'te güncellenir)
 **What Claude needs back:** "Regenerate tamam" + varsa CubeMX uyarıları
 
 ## MANUAL-4 — Donanım bring-up testleri (kart kartlarında tekrar kullanılır)
@@ -56,7 +58,7 @@
 **What Claude needs back:** Dosya adı/yolu
 
 ## MANUAL-6 — git init onayı
-**Status:** [ ] Waiting
+**Status:** [x] Done (2026-06-12 — onaylandı; main branch, ilk commit e2120fe)
 **Blocking:** YES → CARD-0.3 (ve dolaylı olarak güvenli rollback)
 **Tool:** Karar
 **Added by:** BOOTSTRAP-01

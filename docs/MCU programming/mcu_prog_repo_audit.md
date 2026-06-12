@@ -52,9 +52,8 @@ ADC1 (DMA circular, 3 kanal: PC0/PC4/PC5), DAC1_OUT1 (PA4), I2C1 400k (PB8/PB9),
 PIN_MAPPING.xlsx ("MCU Pin Map" sayfası) FMEDA pin haritası, şemadan türetilmiş otorite kaynak:
 
 1. **Sıcaklık ölçümü (KULLANICI TEYİDİ 2026-06-12):** PC0 = TMP_ADC1, PC1 = TMP_ADC2 → **1N4148 diyotlar** (sensör kompanzasyonu için; pin haritasındaki "thermistor" etiketi yanıltıcı). Firmware'in diyot modeli kavramsal olarak DOĞRU (1N914 yerine 1N4148 — aynı onsemi datasheet ailesi: `DATASHEETS\__TI_DATASHEETS\1N914-D.PDF`). **B701 TMP108** ise yalnızca ORTAM sıcaklığı izler: 60 °C üstünde ALERT → **FLT_TEMP# = PB5** kesmesi. Firmware'de eksikler: TMP108 sürücüsü (alert konfigi), PC1 ikinci diyot kanalı, FLT_TEMP# işleme.
-2. **FDC2214 destek pinleri firmware'de hiç sürülmüyor/okunmuyor:**
-   - **CLK_EN = PD2** → X403 (40 MHz) osilatör enable. **Sürülmezse FDC2214 saatsiz kalabilir → sensör ölü.**
-   - **SD = PB6** (shutdown), **INT_B = PB7**, **ERRB = PA1**, **CD_IRQ = PA0**
+2. **FDC2214 destek pinleri (CARD-0.2 revizyonu):** .ioc/gpio.c bunları ZATEN tanımlıyor: CLK_EN=PD2 (boot'ta HIGH → saat aktif ✓), SD=PB6 (boot'ta LOW), INT_B=PB7/ERRB=PA1 (EXTI falling). Eksik olan **uygulama tarafı**: ERRB/INT_B kesmeleri main.c callback'inde işlenmiyor, SD/CLK_EN sıralaması uygulama kontrolünde değil (CARD-1.1). CD_IRQ=PA0 konfigüre değil — EXTI0 hattı BLE_EVENT (PB0) tarafından kullanılıyor (donanım kısıtı, kabul).
+   **YENİ BULGU — ADC kanal bug'ı:** `adc.c` rank 2/3 için `sConfig.Channel` atamıyor → 3 rank da IN1 (PC0) örnekliyor; **VCC_FB ve loop akım geri beslemesi hiç okunmuyor**. Düzeltme .ioc'ta (MANUAL-3).
 3. **LED:** Pin haritası **PB10 = LED_CTRL**; `bsp_pins.h`'deki LED tanımı doğrulanmalı.
 4. **LCD:** **LCD_PWR_ON = PA10** (ekran güç enable) ve **TFT_TE = PC9** — firmware'de sürülüp sürülmediği doğrulanmalı.
 5. **ADC kanalları:** PC0=IN1, PC1=IN2, PC4=IN13, PC5=IN14. Firmware taraması PC1'i içermiyor.

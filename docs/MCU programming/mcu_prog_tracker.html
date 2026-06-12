@@ -77,17 +77,17 @@ const D = {
   projectName:   "PressureTransmitter — STM32U385 4-20 mA firmware",
   repoPath:      "C:\\PressureTransmitter",
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
-  branch:        "(git yok — CARD-0.3 bekliyor)",
-  lastCommit:    "—",
+  branch:        "main",
+  lastCommit:    "e2120fe",
   lastUpdated:   "2026-06-12",
   implementationAllowed: true,
   validationLevel: 2,
 
-  progress: { done: 1, total: 16 },
+  progress: { done: 3, total: 16 },
 
   phases: [
-    { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "in_progress" },
-    { id: "P1", title: "Sensör Yolu Düzeltmeleri",             status: "not_started" },
+    { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "complete" },
+    { id: "P1", title: "Sensör Yolu Tamamlama",                status: "in_progress" },
     { id: "P2", title: "Kalibrasyon & Sıcaklık Kompanzasyonu", status: "not_started" },
     { id: "P3", title: "Ekran & Menü İyileştirme",             status: "not_started" },
     { id: "P4", title: "4-20 mA Döngü Bütünlüğü",              status: "not_started" },
@@ -98,9 +98,9 @@ const D = {
 
   cards: [
     { id: "CARD-0.1", title: "Build fix: flash DOUBLEWORD",            status: "done",        blockedBy: null },
-    { id: "CARD-0.2", title: "bsp_pins ↔ PIN_MAPPING mutabakatı",      status: "next",        blockedBy: null },
-    { id: "CARD-0.3", title: "Git init + .gitignore (onay)",           status: "not_started", blockedBy: null },
-    { id: "CARD-1.1", title: "FDC2214 CLK_EN/SD/hata pinleri",         status: "not_started", blockedBy: "CARD-0.2" },
+    { id: "CARD-0.2", title: "bsp_pins ↔ PIN_MAPPING mutabakatı",      status: "done",        blockedBy: null },
+    { id: "CARD-0.3", title: "Git init + .gitignore",                  status: "done",        blockedBy: null },
+    { id: "CARD-1.1", title: "FDC2214 bring-up (uygulama tarafı)",     status: "next",        blockedBy: null },
     { id: "CARD-1.2", title: "TMP108 ortam izleme + 60°C alert",       status: "not_started", blockedBy: "CARD-0.2" },
     { id: "CARD-1.3", title: "1N4148 diyot modeli + ADC PC1",          status: "not_started", blockedBy: "CARD-0.2" },
     { id: "CARD-1.4", title: "Sıcaklık rolleri entegrasyonu",          status: "not_started", blockedBy: "CARD-1.2" },
@@ -116,8 +116,8 @@ const D = {
   ],
 
   openRisks: [
-    { risk: "Git yok → rollback imkânsız",                       severity: "HIGH",   mitigation: "CARD-0.3 git init; o zamana dek .bak kopyaları" },
-    { risk: "FDC2214 CLK_EN sürülmüyor → sensör saatsiz/ölü",    severity: "HIGH",   mitigation: "CARD-1.1 bring-up sırası" },
+    { risk: "ADC rank 2/3 kanal atanmamış → VCC_FB/I_FB okunmuyor", severity: "HIGH", mitigation: "MANUAL-3: .ioc'ta Rank2=IN13, Rank3=IN14 + PC1 ekle" },
+    { risk: "FDC ERRB/INT_B kesmeleri uygulamada işlenmiyor",    severity: "MEDIUM", mitigation: "CARD-1.1" },
     { risk: "TMP108 ortam alert'i ve PC1 diyot kanalı eksik",    severity: "MEDIUM", mitigation: "CARD-1.2/1.3/1.4" },
     { risk: "TPS3851 pencere ihlali → reset döngüsü",            severity: "MEDIUM", mitigation: "CARD-6.1 zamanlama analizi" },
     { risk: "cal_save flash erase sırasında IWDG reset",         severity: "MEDIUM", mitigation: "CARD-6.1 kick stratejisi" },
@@ -135,9 +135,8 @@ const D = {
   manualSteps: [
     { n: 1, title: "Donanım test düzeneği (ST-Link + 24V + 250Ω)", blocking: false, tool: "Donanım",    status: "waiting" },
     { n: 2, title: "Şema teyitleri (diyot bias, ADDR, R_SET, kristaller)", blocking: true, tool: "PDF/Altium", status: "waiting" },
-    { n: 3, title: "CubeMX .ioc: ADC PC1 + FDC GPIO'ları",         blocking: true,  tool: "STM32CubeMX", status: "waiting" },
+    { n: 3, title: "CubeMX .ioc: ADC rank kanal BUG FIX + PC1 ekle", blocking: true, tool: "STM32CubeMX", status: "waiting" },
     { n: 5, title: "DL-CC2340-B datasheet indir",                  blocking: true,  tool: "Browser",     status: "waiting" },
-    { n: 6, title: "git init onayı",                               blocking: true,  tool: "Karar",       status: "waiting" },
   ],
 
   doNotTouchList: [
@@ -150,17 +149,19 @@ const D = {
   ],
 
   lastChangedFiles: [
+    "Firmware/App/Inc/bsp_pins.h — 7 eksik alias + ADC bug notu (CARD-0.2)",
+    ".gitignore — yeni (CARD-0.3)",
     "Firmware/App/Src/cal_storage.c — flash DOUBLEWORD fix (CARD-0.1)",
-    "docs/MCU programming/ — workspace güncellemeleri",
   ],
 
   changelog: [
     { date: "2026-06-12", id: "BOOTSTRAP-01",  type: "Bootstrap",  summary: "Planlama tamamlandı: 8 faz, 16 kart. Build kırık (QUADWORD), FDC CLK_EN eksiği, BLE yok, git yok — tümü kayıtlı." },
     { date: "2026-06-12", id: "CORRECTION-01", type: "Alignment",  summary: "Kullanıcı teyidi: kompanzasyon = 1N4148 diyotlar (PC0/PC1); TMP108 = yalnız ortam + 60°C alert → FLT_TEMP#. Kartlar 1.2/1.3/1.4 ve roadmap P1 güncellendi." },
     { date: "2026-06-12", id: "CARD-0.1",      type: "Execute",    summary: "Build fix: cal_save QUADWORD → DOUBLEWORD (8 bayt, uint64_t hizalı tampon). Build PASS: 0 hata, 0 uyarı. Seviye 2." },
+    { date: "2026-06-12", id: "CARD-0.2/0.3",  type: "Execute",    summary: "Git init (main, e2120fe). bsp_pins.h: 7 alias eklendi. BULGU: adc.c rank 2/3 kanal atanmamış (hep PC0) → MANUAL-3'e bug fix eklendi. P0 tamam." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-0.2  (bsp_pins ↔ PIN_MAPPING mutabakatı; git init CARD-0.3 onayını da belirt)",
+  nextPrompt: "/ease-me execute CARD-1.1  (FDC2214 uygulama tarafı bring-up). Paralel: MANUAL-3 CubeMX ADC düzeltmesini yap ve haber ver.",
 };
 </script>
 

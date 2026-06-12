@@ -77,11 +77,38 @@ extern TIM_HandleTypeDef  htim1;
 #define BTN_SET_PORT       BTN_SET_GPIO_Port
 #define BTN_SET_PIN        BTN_SET_Pin
 
+/* TMP108 (B701) alert çıkışı — FLT_TEMP# (PB5), aktif-LOW, EXTI5             */
+#define FLT_TEMP_PORT      FLT_TEMP_GPIO_Port
+#define FLT_TEMP_PIN       FLT_TEMP_Pin
+
+/* DL-CC2340-B BLE modülü (U500) kontrol pinleri                              */
+#define BLE_PWR_ON_PORT    BLE_PWR_ON_GPIO_Port   /* PC2  — güç enable        */
+#define BLE_PWR_ON_PIN     BLE_PWR_ON_Pin
+#define BLE_MODE_PORT      BLE_MODE_GPIO_Port     /* PB12 — mod seçimi        */
+#define BLE_MODE_PIN       BLE_MODE_Pin
+#define BLE_RESET_PORT     BLE_RESET_GPIO_Port    /* PA15 — reset (open-drain)*/
+#define BLE_RESET_PIN      BLE_RESET_Pin
+#define BLE_EVENT_PORT     BLE_EVENT_GPIO_Port    /* PB0  — event/IRQ, EXTI0  */
+#define BLE_EVENT_PIN      BLE_EVENT_Pin
+
+/* HART modem reset (RST#TI, PC12) — 4-20 konfigde hat pasif (B404 yok)       */
+#define RST_TI_PORT        RST_TI_GPIO_Port
+#define RST_TI_PIN         RST_TI_Pin
+
+/* Üretim test modu girişi (PB4, pull-down)                                   */
+#define TEST_MODE_PORT     TEST_MODE_GPIO_Port
+#define TEST_MODE_PIN      TEST_MODE_Pin
+
 /* -------------------------------------------------------------------------- */
 /* ADC scan order — CubeMX'te ayarlanan rank sırasıyla aynı:                  */
-/*   Rank 1 → ADC1_IN1   (PC0)   1N914 diyot                                  */
-/*   Rank 2 → ADC1_IN11  (PC4)   VCC feedback                                 */
-/*   Rank 3 → ADC1_IN12  (PC5)   INA190 loop current                          */
+/*   Rank 1 → ADC1_IN1   (PC0)   1N4148 kompanzasyon diyodu (TMP_ADC1)        */
+/*   Rank 2 → ADC1_IN13  (PC4)   VCC feedback                                 */
+/*   Rank 3 → ADC1_IN14  (PC5)   INA190 loop current                          */
+/*                                                                            */
+/* !! BİLİNEN SORUN (CubeMX/.ioc — MANUAL-3 ile düzeltilecek):                */
+/*    adc.c rank 2/3 için sConfig.Channel atamıyor → üç rank da IN1 örnekliyor.*/
+/*    .ioc'ta Rank2=IN13, Rank3=IN14 atanmalı; ayrıca Rank için PC1 (IN2,     */
+/*    TMP_ADC2 ikinci 1N4148) eklenmeli → ADC_RANK_COUNT o zaman 4 olur.      */
 /* -------------------------------------------------------------------------- */
 #define ADC_RANK_TDIODE       0
 #define ADC_RANK_VCC_FB       1

@@ -18,3 +18,12 @@
 **Diff budget:** 1 değişen, 0 yeni.
 **Done criteria:** [ ] 0 error build; [ ] uyarılar changelog'da.
 **Stop conditions:** Başka dosyada hata çıkarsa dur; flash API farklı imza isterse dur.
+
+## TASK PACKET CARD-0.2 (+0.3) — 2026-06-12
+
+**Goal:** bsp_pins.h'ı PIN_MAPPING ile bire bir hizalamak; git init.
+**Exact files inspected:** `App/Inc/bsp_pins.h` (tam), `Core/Src/gpio.c` (tam), `Core/Src/adc.c` (60-94).
+**Files edited:** `App/Inc/bsp_pins.h`; yeni `.gitignore`.
+**Bulgular:** (1) .ioc tüm FMEDA pinlerini zaten tanımlıyor; CLK_EN boot'ta HIGH. (2) ADC BUG: rank 2/3'e kanal atanmamış — hep CHANNEL_1; .ioc düzeltmesi MANUAL-3'e işlendi. (3) CD_IRQ (PA0) kullanılamaz — EXTI0 hattı BLE_EVENT'te.
+**Validation:** build PASS (0 err / 0 warn). Seviye 2.
+**Rollback:** git checkout (main, e2120fe sonrası commit).

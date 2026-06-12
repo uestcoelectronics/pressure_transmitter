@@ -7,8 +7,8 @@
 - **Last updated:** 2026-06-12 (Bootstrap oturumu)
 - **Repo path:** `C:\PressureTransmitter`
 - **Workspace path:** `C:\PressureTransmitter\docs\MCU programming`
-- **Current branch:** YOK — git repo değil (CARD-0.3 bekliyor)
-- **Last commit hash:** —
+- **Current branch:** main (git init 2026-06-12, CARD-0.3)
+- **Last commit hash:** e2120fe (initial) — CARD-0.2 commit'i bu güncellemeyle atılacak
 
 ## Implementation Allowed
 
@@ -44,10 +44,10 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-0.1 | **Tarih:** 2026-06-12
-- **Özet:** Build baseline düzeltildi: `cal_storage.c` flash yazımı QUADWORD → DOUBLEWORD (8 bayt, `uint64_t` hizalı tampon). HAL imzası teyitli (`DataAddress`). Build: 0 hata, 0 uyarı, elf üretildi. Yedek: `cal_storage.c.bak`.
-- **Değişen:** `Firmware/App/Src/cal_storage.c` (1 dosya — bütçe içinde)
-- **Önceki:** CORRECTION-01 (sıcaklık mimarisi teyidi: 1N4148 kompanzasyon / TMP108 ortam+60°C alert), BOOTSTRAP-01 (planlama)
+- **Task ID:** CARD-0.2 (+ CARD-0.3) | **Tarih:** 2026-06-12
+- **Özet:** CARD-0.3: git init (main, e2120fe, 392 dosya, .gitignore). CARD-0.2: bsp_pins.h'a 7 eksik alias eklendi (FLT_TEMP, BLE×4, RST_TI, TEST_MODE), ADC/diyot yorumları düzeltildi. **Yeni bulgular:** (1) .ioc FDC pinlerini zaten tanımlıyor — CLK_EN boot'ta HIGH (saat riski kapandı); eksik olan uygulama tarafı işleme. (2) **ADC bug: adc.c 3 rank'ın üçünde de CHANNEL_1 örnekliyor** — VCC_FB/I_FB hiç okunmuyor; düzeltme .ioc'ta (MANUAL-3'e eklendi).
+- **Değişen:** `App/Inc/bsp_pins.h` (1 dosya), `.gitignore` (yeni)
+- **Önceki:** CARD-0.1 (build fix), CORRECTION-01, BOOTSTRAP-01
 
 ## Current Task
 
@@ -55,15 +55,16 @@
 
 ## Next Recommended Task
 
-- **CARD-0.2 — bsp_pins.h ↔ PIN_MAPPING mutabakatı** (onay alındı — kart bazında ilerlenebilir).
-- Hâlâ açık: **CARD-0.3 git init onayı** (MANUAL-6) — o gelene dek .bak yedekleriyle çalışılıyor.
+- **CARD-1.1 — FDC2214 bring-up (uygulama tarafı):** ERRB/INT_B kesme işleme, SD/CLK_EN sıralamasının uygulama kontrolüne alınması, I2C adres tanısı. Donanım gerektirmeyen kısmı kodlanabilir.
+- Paralel açık: **MANUAL-3** (CubeMX: ADC rank kanalları bug fix + PC1 ekleme) — CARD-1.3'ün ön koşulu; erken yapılması CARD-4.1'in de önünü açar.
 
 ## Open Risks
 
 | Risk | Şiddet | Azaltım |
 |---|---|---|
-| Git yok → rollback imkânsız | HIGH | CARD-0.3 git init; o zamana dek .bak kopyaları |
-| FDC2214 saatsiz (CLK_EN sürülmüyor) → sensör ölü | HIGH | CARD-1.1 |
+| ~~Git yok~~ | — | KAPANDI: CARD-0.3 (main, e2120fe) |
+| ADC rank 2/3 kanal atanmamış → VCC_FB/I_FB okunmuyor | HIGH | MANUAL-3 (.ioc düzeltme + regenerate) |
+| FDC ERRB/INT_B kesmeleri uygulamada işlenmiyor | MEDIUM | CARD-1.1 |
 | TMP108 ortam alert'i ve PC1 diyot kanalı eksik | MEDIUM | CARD-1.2/1.3/1.4 |
 | TPS3851 pencere ihlali → reset döngüsü | MEDIUM | CARD-6.1 zamanlama analizi |
 | cal_save flash erase sırasında IWDG reset | MEDIUM | CARD-6.1 kick stratejisi |
