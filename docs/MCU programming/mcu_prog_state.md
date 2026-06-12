@@ -36,7 +36,7 @@
 | Sıcaklık ölçümü | complete (kod) — çift 1N4148 + TMP108 ortam/alert; donanım testi MANUAL-4; rol entegrasyonu CARD-1.4 |
 | Kalibrasyon + flash | complete (kod) — v2 format + migrasyon + kompanzasyon v2; sağlamlaştırma CARD-2.2; donanım testi yok |
 | LCD + menü | complete (kod) — donanım testi yok, iyileştirme planlı |
-| 4-20 loop sürücü | complete (kod) — donanım testi yok |
+| 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
 | BLE | not started |
 | Watchdog | in progress — kick var, pencere teyitsiz |
 | Tanılar (diag) | not started |
@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-2.2 | **Tarih:** 2026-06-13 | **Commit:** 42586fa — **P2 kod tarafı TAMAM**
+- **Task ID:** CARD-4.1 | **Tarih:** 2026-06-13 | **Commit:** 0fe297f — **P4 kod tarafı TAMAM**
+- **Özet:** NAMUR NE43 seviyeleri + satürasyon; sapma monitörü (0.3 mA / 2 s, tanı bayrağı + LED 5 Hz + "LOOP DEV"); FLT auto-retry (5 s, pin seviyesi kontrollü). **BUG FIX:** alarm-low 3.6 mA clamp yüzünden üretilemiyordu. Build PASS 0/0.
+- **Önceki:** CARD-2.2 | Commit: 42586fa — P2 kod tarafı TAMAM
 - **Özet:** Kalibrasyon sağlamlaştırma: stabilite penceresi (8 örnek, p2p≤2000) + yakalama reddi; span ≥10000 kontrolü; Save öncesi cal_validate; Exit çift onay; transient mesaj API'si + ekran entegrasyonu. Build PASS 0/0. Eşikler donanımda ayarlanacak (MANUAL-4).
 - **Önceki:** CARD-2.1 | Commit: 5159b8a
 - **Özet:** Kompanzasyon v2: k_t_zero+k_t_span·frac modeli; flash format v2 (vf25/tc persistansı) + v1→v2 migrasyon; menü 11 öğe (kT span eklendi); Vf25/TC tek kaynak cal_params + boot/commit/reload senkronu. Build PASS 0/0. Risk notu: v2 kayıt sonrası eski firmware'e dönüş = defaults.
@@ -68,7 +70,7 @@
 
 ## Next Recommended Task
 
-- **CARD-3.1 — LCD güç sırası + donanım doğrulama** (LCD_PWR_ON sıralaması; donanımsız kısmı kodlanabilir) veya **CARD-4.1 — Loop makullük + NAMUR** — ikisi de bağımsız; öneri: 4.1 (donanımsız kodlanabilir kısmı daha büyük).
+- **CARD-3.1 — LCD güç sırası:** LCD_PWR_ON (PA10) sürme + reset zamanlaması; ardından CARD-3.2 menü iyileştirmeleri. Kalan kod kartları: 3.1, 3.2, 5.1, 5.2, 6.1, 6.2 (+ manuel ağırlıklı 7.x).
 
 ## Open Risks
 

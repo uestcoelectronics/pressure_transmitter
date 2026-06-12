@@ -31,8 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P2 kod tarafı TAMAM | **Son:** CARD-2.2 kalibrasyon sağlamlaştırma (42586fa)
-- **Sıradaki:** CARD-4.1 loop makullük+NAMUR (önerilen) veya CARD-3.1 LCD güç sırası
+- **Faz:** P0-P2+P4 kod tarafı TAMAM | **Son:** CARD-4.1 NAMUR+sapma+retry (0fe297f)
+- **Sıradaki:** CARD-3.1 LCD güç sırası → CARD-3.2 menü iyileştirme → P5 BLE
+- Loop: NAMUR sabitleri xtr111_loop.h'ta; komut penceresi 3.6..21.0; sapma 0.3 mA/2 s; FLT retry 5 s
 - Kalibrasyon eşikleri: CAL_STAB_P2P_MAX=2000, CAL_MIN_SPAN_COUNTS=10000 (state_machine.c, donanımda ayarlanacak)
 - Kompanzasyon: P −= (k_t_zero + k_t_span·frac)·ΔT; menü 11 öğe ("/11" pressure_app'te hardcoded — MI__COUNT ile senkron tut)
 - Ekran satır 3 önceliği: *FAULT* > SENSOR ERR > TDIODE ERR > AMB HOT > OK; alarm-low yalnız FDC hatası

@@ -78,19 +78,19 @@ const D = {
   repoPath:      "C:\\PressureTransmitter",
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
   branch:        "main",
-  lastCommit:    "42586fa",
+  lastCommit:    "0fe297f",
   lastUpdated:   "2026-06-13",
   implementationAllowed: true,
   validationLevel: 2,
 
-  progress: { done: 9, total: 16 },
+  progress: { done: 10, total: 16 },
 
   phases: [
     { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "complete" },
     { id: "P1", title: "Sensör Yolu Tamamlama",                status: "complete" },
     { id: "P2", title: "Kalibrasyon & Sıcaklık Kompanzasyonu", status: "complete" },
-    { id: "P3", title: "Ekran & Menü İyileştirme",             status: "not_started" },
-    { id: "P4", title: "4-20 mA Döngü Bütünlüğü",              status: "not_started" },
+    { id: "P3", title: "Ekran & Menü İyileştirme",             status: "in_progress" },
+    { id: "P4", title: "4-20 mA Döngü Bütünlüğü",              status: "complete" },
     { id: "P5", title: "Bluetooth Konfigürasyon",              status: "not_started" },
     { id: "P6", title: "Watchdog & Tanılar",                   status: "not_started" },
     { id: "P7", title: "Donanım Doğrulama & Sürüm",            status: "not_started" },
@@ -106,9 +106,9 @@ const D = {
     { id: "CARD-1.4", title: "Sıcaklık rolleri entegrasyonu",          status: "done",        blockedBy: null },
     { id: "CARD-2.1", title: "Kompanzasyon modeli v2",                 status: "done",        blockedBy: null },
     { id: "CARD-2.2", title: "Kalibrasyon sağlamlaştırma",             status: "done",        blockedBy: null },
-    { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "not_started", blockedBy: "CARD-0.2" },
+    { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "next",        blockedBy: null },
     { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "not_started", blockedBy: "CARD-2.1" },
-    { id: "CARD-4.1", title: "Loop makullük + NAMUR alarmları",        status: "next",        blockedBy: null },
+    { id: "CARD-4.1", title: "Loop makullük + NAMUR alarmları",        status: "done",        blockedBy: null },
     { id: "CARD-5.1", title: "BLE UART taşıma katmanı",                status: "not_started", blockedBy: "CARD-0.2" },
     { id: "CARD-5.2", title: "BLE konfigürasyon protokolü",            status: "not_started", blockedBy: "CARD-5.1" },
     { id: "CARD-6.1", title: "TPS3851 pencere teyidi + WD stratejisi", status: "not_started", blockedBy: "CARD-0.1" },
@@ -148,9 +148,9 @@ const D = {
   ],
 
   lastChangedFiles: [
+    "Firmware/App/Inc+Src/xtr111_loop — NAMUR + sapma monitörü + retry (CARD-4.1)",
+    "Firmware/App/Src/pressure_app.c — satürasyon, LOOP DEV, loop_service (CARD-4.1)",
     "Firmware/App/Inc+Src/state_machine — stabilite + red + çift onay (CARD-2.2)",
-    "Firmware/App/Src/pressure_app.c — mesaj satırı + STABLE/WAIT göstergesi (CARD-2.2)",
-    "Firmware/App/Inc+Src/cal_storage — format v2 + v1 migrasyon (CARD-2.1)",
   ],
 
   changelog: [
@@ -165,9 +165,10 @@ const D = {
     { date: "2026-06-12", id: "CARD-1.4",      type: "Execute",    summary: "Rol entegrasyonu: TDIODE ERR ekran önceliği + mimari dokümantasyon. P1 kod tarafı TAMAM. Build PASS." },
     { date: "2026-06-12", id: "CARD-2.1",      type: "Execute",    summary: "Kompanzasyon v2 (k_t zero+span·frac) + flash format v2 (vf25/tc persistans) + v1→v2 migrasyon + menü 11 öğe. Build PASS." },
     { date: "2026-06-13", id: "CARD-2.2",      type: "Execute",    summary: "Kalibrasyon sağlamlaştırma: stabilite penceresi + yakalama reddi, span/P doğrulama, Exit çift onay, mesaj API'si. P2 kod tarafı TAMAM. Build PASS." },
+    { date: "2026-06-13", id: "CARD-4.1",      type: "Execute",    summary: "NAMUR NE43 + sapma monitörü + FLT auto-retry. BUG FIX: 3.6 mA alarm-low clamp yüzünden üretilemiyordu. P4 kod tarafı TAMAM. Build PASS." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-4.1  (loop geri besleme makullüğü + NAMUR alarmları)",
+  nextPrompt: "/ease-me execute CARD-3.1  (LCD güç sırası + reset zamanlaması)",
 };
 </script>
 
