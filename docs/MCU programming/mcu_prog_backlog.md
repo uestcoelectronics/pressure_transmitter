@@ -126,7 +126,7 @@
 ## CARD-2.1 — Sıcaklık Kompanzasyon Modeli v2
 
 **Purpose:** Tek k_T katsayısı yetersiz; zero ve span ayrı sıcaklık etkisi görür.
-**Scope:** `cal_params_t`'ye `k_t_zero`, `k_t_span` (mevcut k_t → k_t_zero geriye uyum), flash format **version=2** + v1'den migrasyon; menüye yeni öğeler.
+**Scope:** `cal_params_t`'ye `k_t_zero`, `k_t_span` (mevcut k_t → k_t_zero geriye uyum), **`vf25_mv` + `tc_mv_c` alanları (CARD-1.3 notu: şu an menüden ayarlanan Vf25/TC reboot'ta kayboluyor — v2'de flash'a girecek, boot'ta temp_diode_set_calibration ile yüklenecek)**, flash format **version=2** + v1'den migrasyon; menüye yeni öğeler.
 **Dependencies:** CARD-1.4
 **Inspect before coding:** `cal_storage.c/h`, `pressure_app.c` (dC_to_pressure), `state_machine.c`
 **Files allowed to edit:** `cal_storage.c/h`, `pressure_app.c`, `state_machine.c`

@@ -199,3 +199,29 @@
 **Risks Resolved:** None (TMP108 eksikliği kalemi CARD-1.3 sonrası tamamen kapanacak)
 
 **Next Action:** CARD-1.3 — 1N4148 çift kanal (PC0/PC1) + çapraz makullük
+
+## 2026-06-12 | Execute | Task: CARD-1.3
+
+**Task ID:** CARD-1.3
+**Type:** Execute
+**Status:** Complete (kod); donanım doğrulaması MANUAL-4 bekliyor
+
+**Files Created:** Yok
+**Files Modified:**
+- `Firmware/App/Inc/temp_diode.h` + `Src/temp_diode.c` — çift kanal rework: temp_diode_update(d1,d2), kanal geçerlilik (V_f 200–1000 mV), |T1−T2|≤5 °C çapraz makullük, arbitrasyon (ortalama / tek kanal / son-değer tutma), is_consistent() + kanal bazlı tanı getter'ları, get_vf25_mv()/get_tc_mv_c(); 1N4148 referansları (onsemi 1N914-D.PDF)
+- `Firmware/App/Src/pressure_app.c` — temp_diode_update(TDIODE, TDIODE2) çağrısı
+- `Firmware/App/Src/state_machine.c` — BUG FIX: Vf25 edit'i TC'yi (ve tersi) varsayılana eziyordu; edit artık mevcut değerden başlıyor ve yalnız hedef parametreyi değiştiriyor
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda iki kanalın gerçek okumaları, kanal kopma/tutarsızlık senaryoları — MANUAL-4
+
+**Result:** Kompanzasyon sıcaklığı artık iki 1N4148 diyotundan yedekli besleniyor (FMEDA A.11/A.14 girişlerine zemin). Tutarlı durumda ortalama; tek kanal arızasında öteki kanal; çift arıza/tutarsızlıkta son tutarlı değer + bayrak. Vf25/TC menü kalıcılık eksiği CARD-2.1 v2 formatına işlendi.
+
+**Risks Introduced:** None
+**Risks Resolved:** Menü Vf25/TC karşılıklı ezme bug'ı (önceden kayıtsızdı — bulunup kapatıldı)
+
+**Next Action:** CARD-1.4 — sıcaklık rolleri entegrasyonu (tanı bayrağının ekran/alarm yoluna bağlanması)

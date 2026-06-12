@@ -81,8 +81,8 @@ static void enter_edit(menu_item_t mi)
         case MI_P_MAX:    s_edit_val = c->p_max;     s_edit_step = 0.5f;  break;
         case MI_DAMPING:  s_edit_val = c->damping_s; s_edit_step = 0.1f;  break;
         case MI_KT:       s_edit_val = c->k_t;       s_edit_step = 0.001f;break;
-        case MI_VF25:     s_edit_val = 600.0f;       s_edit_step = 1.0f;  break;
-        case MI_TC:       s_edit_val = -2.0f;        s_edit_step = 0.1f;  break;
+        case MI_VF25:     s_edit_val = temp_diode_get_vf25_mv(); s_edit_step = 1.0f; break;
+        case MI_TC:       s_edit_val = temp_diode_get_tc_mv_c(); s_edit_step = 0.1f; break;
         default: break;
     }
     s_state = SM_EDIT_FLOAT;
@@ -96,8 +96,10 @@ static void commit_edit(void)
         case MI_P_MAX:    c->p_max     = s_edit_val; break;
         case MI_DAMPING:  c->damping_s = s_edit_val; break;
         case MI_KT:       c->k_t       = s_edit_val; break;
-        case MI_VF25:     temp_diode_set_calibration(s_edit_val, -2.0f); break;
-        case MI_TC:       temp_diode_set_calibration(600.0f, s_edit_val); break;
+        case MI_VF25:     temp_diode_set_calibration(s_edit_val,
+                                                     temp_diode_get_tc_mv_c()); break;
+        case MI_TC:       temp_diode_set_calibration(temp_diode_get_vf25_mv(),
+                                                     s_edit_val); break;
         default: break;
     }
 }

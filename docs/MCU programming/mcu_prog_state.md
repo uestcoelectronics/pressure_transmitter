@@ -33,7 +33,7 @@
 |---|---|
 | Build baseline | **complete** — CARD-0.1 ile düzeltildi (DOUBLEWORD); temiz build, 0 uyarı |
 | FDC2214 sürücü | complete (kod) — CARD-1.1: sıralama+adres tespiti+ERRB/INT_B; donanım testi MANUAL-4 |
-| Sıcaklık ölçümü | in progress — TMP108 ortam+alert tamam (CARD-1.2); PC1 ikinci diyot kanalı kaldı (CARD-1.3) |
+| Sıcaklık ölçümü | complete (kod) — çift 1N4148 + TMP108 ortam/alert; donanım testi MANUAL-4; rol entegrasyonu CARD-1.4 |
 | Kalibrasyon + flash | complete (build fix sonrası) — donanım testi yok |
 | LCD + menü | complete (kod) — donanım testi yok, iyileştirme planlı |
 | 4-20 loop sürücü | complete (kod) — donanım testi yok |
@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-1.2 | **Tarih:** 2026-06-12
+- **Task ID:** CARD-1.3 | **Tarih:** 2026-06-12
+- **Özet:** 1N4148 çift kanal: temp_diode.c/h rework — PC0+PC1 okuma, kanal geçerlilik (V_f 200–1000 mV), |T1−T2|≤5 °C çapraz makullük, tutarlıysa ortalama / tek kanal fallback / son-değer tutma, temp_diode_is_consistent() tanı API'si. Menü bug fix: Vf25/TC edit'i birbirini varsayılana ezmiyor, edit mevcut değerden başlıyor. Build PASS 0/0. NOT: Vf25/TC flash persistansı CARD-2.1 v2 formatına eklendi.
+- **Önceki:** CARD-1.2 (TMP108, 953ea00)
 - **Özet:** TMP108 ortam monitörü: yeni tmp108.c/h — adres taraması (0x48-0x4B), config 0x2230 (continuous, 1 Hz, comparator, aktif-LOW, HYS=4 °C), THIGH=60 °C/TLOW=-50 °C + read-back doğrulama; 1 Hz poll; FLT_TEMP# EXTI → anında overtemp bayrağı, histeresisle otomatik temizlenme; ekran "AMB HOT >60C". Kompanzasyona bağlanmadı (rol ayrımı korunuyor). Build PASS 0/0.
 - **Önceki:** CARD-1.1 (FDC bring-up, 07d6df2)
 - **Önceki:** MANUAL-3 + ADC re-rank | **Tarih:** 2026-06-12
@@ -60,7 +62,7 @@
 
 ## Next Recommended Task
 
-- **CARD-1.3 — 1N4148 çift kanal (PC0/PC1) + çapraz makullük:** .ioc ayağı hazır (MANUAL-3); temp_diode.c'ye TDIODE2 kanalı, kanal ortalaması, |T1−T2| tutarlılık kontrolü. Donanım gerektirmiyor (kod + build).
+- **CARD-1.4 — Sıcaklık rolleri entegrasyonu:** diyot arıza politikasının (tutarsızlık bayrağı → tanı/ekran) pressure_app'e bağlanması; rollerin belgelenmesi. Küçük kart — CARD-1.3 arbitrasyonun çoğunu yaptı.
 
 ## Open Risks
 

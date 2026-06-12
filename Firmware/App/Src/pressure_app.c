@@ -186,7 +186,8 @@ void pressure_app_loop(void)
         /* ADC sonucu hazırsa işleyelim, yenisini başlatalım */
         if (s_adc_done) {
             s_adc_done = false;
-            temp_diode_update_from_adc(s_adc_buf[ADC_RANK_TDIODE]);
+            temp_diode_update(s_adc_buf[ADC_RANK_TDIODE],
+                              s_adc_buf[ADC_RANK_TDIODE2]);
             loop_update_feedback_from_adc(s_adc_buf[ADC_RANK_ILOOP_FB]);
             /* s_adc_buf[ADC_RANK_VCC_FB] — supply monitor için ayrılmış */
         }

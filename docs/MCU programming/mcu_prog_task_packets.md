@@ -67,3 +67,24 @@
 **Diff budget:** 3 değişen (CMakeLists, pressure_app.c, main.c USER CODE), 2 yeni.
 **Done criteria:** temiz build; config read-back doğrulaması kodda; EXTI + poll yolu kodda; donanım MANUAL-4.
 **Stop conditions:** main.c USER CODE dışına dokunmak gerekirse dur.
+
+## TASK PACKET CARD-1.3 — 2026-06-12
+
+**Goal:** 1N4148 kompanzasyon diyotları çift kanal (PC0=TMP_ADC1, PC1=TMP_ADC2): ikinci kanal okuma, geçerlilik + çapraz makullük, tutarlı çıkış.
+**Non-goals:** Kompanzasyon matematiği (CARD-2.1); TMP108 (ayrı rol); Vf25/TC flash persistansı (CARD-2.1 format v2 notu).
+**Current state:** temp_diode.c tek kanal (PC0); ADC 4 kanal hazır (MANUAL-3); ADC_RANK_TDIODE2 tanımlı ama kullanılmıyor; state_machine'de Vf25/TC edit'i birbirini varsayılana eziyor (bug).
+**Exact files inspected:** temp_diode.c (tam), temp_diode.h (tam), state_machine.c (menü Vf25/TC bölümleri), pressure_app.c (ADC tüketimi — bu oturumda tam).
+**Files allowed to edit:** App/Src/temp_diode.c, App/Inc/temp_diode.h, App/Src/pressure_app.c, App/Src/state_machine.c (4 değişen — kart önceden +1 onaylı)
+**Files forbidden:** Core/**, Drivers/**, .ioc, bsp_pins.h (değişiklik gerekmez)
+**Expected behavior after:**
+- Her iki diyot kanalı okunur; kanal geçerlilik aralığı V_f 200–1000 mV (açık/kısa devre tespiti)
+- |T1−T2| ≤ 5 °C → çıkış ortalama; aşım → tutarsızlık bayrağı + çıkış son tutarlı değerde tutulur
+- Tek kanal geçersizse diğeriyle devam + bayrak; ikisi de geçersizse son değer + bayrak
+- 1N4148 parametreleri (V_f25≈600 mV @ ~100 µA, TC≈−2 mV/°C; onsemi 1N914-D.PDF 1N4x48 dahil) yorumda belgeli
+- Menü bug fix: Vf25 düzenlemek TC'yi (ve tersi) artık ezmiyor; edit mevcut değerden başlıyor
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda iki kanal oda sıcaklığında ±5 °C içinde; bir diyot bağlantısı koparılınca bayrak + tek kanalla devam.
+**Rollback plan:** git checkout -- <4 dosya>
+**Diff budget:** 4 değişen (onaylı), 0 yeni.
+**Done criteria:** temiz build; çift kanal + makullük + bayrak kodda; menü bug fix; donanım MANUAL-4.
+**Stop conditions:** bsp_pins/Core değişikliği gerekirse dur.
