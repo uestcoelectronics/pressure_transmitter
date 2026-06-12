@@ -1,0 +1,98 @@
+# mcu_prog — Changelog
+
+> Append-only. Yeni girişler en alta eklenir.
+
+## 2026-06-12 | Bootstrap | Task: BOOTSTRAP-01
+
+**Task ID:** BOOTSTRAP-01
+**Type:** Planning / Bootstrap
+**Status:** Complete
+
+**Files Created:**
+- `docs/MCU programming/mcu_prog_repo_audit.md`
+- `docs/MCU programming/mcu_prog_design_grill.md`
+- `docs/MCU programming/mcu_prog_web_research.md`
+- `docs/MCU programming/mcu_prog_roadmap.md`
+- `docs/MCU programming/mcu_prog_backlog.md`
+- `docs/MCU programming/mcu_prog_state.md`
+- `docs/MCU programming/mcu_prog_memory.md`
+- `docs/MCU programming/mcu_prog_changelog.md`
+- `docs/MCU programming/mcu_prog_tracker.html`
+- `docs/MCU programming/mcu_prog_manual_steps.md`
+- `docs/MCU programming/mcu_prog_capabilities.md`
+- `docs/MCU programming/mcu_prog_project_profile.md`
+- `docs/MCU programming/mcu_prog_task_packets.md`
+- `docs/MCU programming/mcu_prog_claude_system_prompt.md`
+- `docs/MCU programming/mcu_prog_self_check.md`
+- `docs/MCU programming/start_mcu_prog_claude.bat`
+- `docs/MCU programming/continue_mcu_prog_claude.bat`
+- `docs/MCU programming/status_mcu_prog.bat`
+
+**Files Modified:** Yok (planning-only; production koduna dokunulmadı)
+
+**Tests / Validations Run:**
+- `cmake --preset Debug` + `cmake --build build/Debug` → **FAIL**: `App/Src/cal_storage.c:112: 'FLASH_TYPEPROGRAM_QUADWORD' undeclared` (tek hata; U3 HAL yalnız DOUBLEWORD/BURST destekler — `stm32u3xx_hal_flash.h:260-271` ile teyitli)
+- `DS154S10Z0TG01.pdf` s.4 metin çıkarımı → LCD denetleyici **ST7789V teyit**
+- `PIN_MAPPING.xlsx` + `BOM/PCBPT910G1_4_20.xlsx` analizleri → pin/komponent uyumsuzlukları tespit (bkz. repo_audit)
+- Web: DL-CC2340-B = AT komutlu BLE modülü teyidi
+
+**Validation Level Reached:** 1 — statik inceleme + doküman üretimi (build denemesi yapıldı, başarısız → seviye 2 sayılmaz)
+
+**Result:** Tam planlama tamamlandı. 8 fazlı roadmap, 16 kartlık backlog. Kritik bulgular: (1) build kırık — QUADWORD; (2) sıcaklık donanımı firmware varsayımından farklı (termistör+TMP108, diyot değil); (3) FDC2214 CLK_EN/SD pinleri sürülmüyor; (4) BLE hiç yok; (5) repo git değil.
+
+**Risks Introduced:** None
+**Risks Resolved:** LCD denetleyici belirsizliği (ST7789V teyit edildi — INTEGRATION.md TODO #1 kapandı)
+
+**Next Action:** CARD-0.1 — Build Baseline Düzeltmesi (kullanıcı onayı gerekli) + CARD-0.3 git init onayı
+
+## 2026-06-12 | Alignment | Task: CORRECTION-01
+
+**Task ID:** CORRECTION-01
+**Type:** Planning / Alignment (kullanıcı düzeltmesi)
+**Status:** Complete
+
+**Files Created:** Yok
+**Files Modified:**
+- `mcu_prog_repo_audit.md` (sıcaklık bulgusu düzeltildi)
+- `mcu_prog_design_grill.md` (çelişki #1 KAPANDI, U1/U2 CONFIRMED)
+- `mcu_prog_roadmap.md` (P1 kapsamı)
+- `mcu_prog_backlog.md` (CARD-1.2, CARD-1.3, CARD-1.4 yeniden yazıldı)
+- `mcu_prog_state.md` (D2/D6/D8, Q1/Q2, risk tablosu)
+- `mcu_prog_memory.md` (sıcaklık mimarisi)
+- `mcu_prog_manual_steps.md` (MANUAL-2 madde 1)
+- `mcu_prog_tracker.html` (kartlar, risk, sorular, changelog)
+
+**Tests / Validations Run:**
+- `DATASHEETS\__TI_DATASHEETS\1N914-D.PDF` metin çıkarımı → onsemi dokümanı **1N4148'i kapsıyor** (1N91x/1N4x48 ailesi) ✓
+- 4-20 BOM diyot taraması → kartta ayrık 1N4148 yok → diyotlar sensör modülü içinde (Yantai metal kapasitif sensör)
+
+**Validation Level Reached:** 1 — doküman güncellemesi + statik teyit
+
+**Result:** Kullanıcı teyidi işlendi: **Kompanzasyon sıcaklığı = 1N4148 diyotlar (PC0=TMP_ADC1, PC1=TMP_ADC2)** — mevcut temp_diode.c modeli kavramsal olarak doğru, PC1 kanalı + datasheet parametre teyidi eklenecek. **TMP108 = yalnız ortam sıcaklığı**; T_HIGH=60 °C alert pini FLT_TEMP# (PB5) kesmesi üretecek şekilde konfigüre edilecek; kompanzasyonda kullanılmayacak, failover yapılmayacak. Pin haritasındaki "thermistor" etiketi yanıltıcı olarak işaretlendi.
+
+**Risks Introduced:** None
+**Risks Resolved:** "Sıcaklık modeli yanlış donanım varsayımı" (HIGH) → kapatıldı; yerine MEDIUM "TMP108 alert + PC1 kanalı eksik"
+
+**Next Action:** CARD-0.1 — Build Baseline Düzeltmesi (kullanıcı onayı gerekli) + CARD-0.3 git init onayı
+
+## 2026-06-12 | Execute | Task: CARD-0.1
+
+**Task ID:** CARD-0.1
+**Type:** Execute
+**Status:** Complete
+
+**Files Created:** `Firmware/App/Src/cal_storage.c.bak` (yedek)
+**Files Modified:** `Firmware/App/Src/cal_storage.c` (cal_save: QUADWORD/16-bayt → DOUBLEWORD/8-bayt; tampon `uint8_t[]` → `uint64_t[]` hizalı)
+
+**Tests / Validations Run:**
+- HAL imza teyidi: `stm32u3xx_hal_flash.c:170 HAL_FLASH_Program(TypeProgram, Address, DataAddress)` — DataAddress = veri adresi ✓
+- `cmake --build build/Debug` → **PASS**: 0 error, 0 warning, `PressureTransmitter.elf` link edildi
+
+**Validation Level Reached:** 2 — derleme/link. Donanımda flash kaydet/yükle testi YAPILMADI (kart gerektirir → MANUAL-4 kapsamında CARD-7.1 öncesi yapılacak).
+
+**Result:** Build baseline yeşil. Kalibrasyon formatı (magic/CRC/v1) değişmedi; yalnızca program birimi 16→8 bayt.
+
+**Risks Introduced:** None
+**Risks Resolved:** "Build kırık" (blocked) → kapandı
+
+**Next Action:** CARD-0.2 — bsp_pins.h ↔ PIN_MAPPING mutabakatı; CARD-0.3 git init onayı bekleniyor

@@ -1,0 +1,16 @@
+# Build çıktıları
+Firmware/build/
+
+# Yedekler
+*.bak
+
+# Office kilit dosyaları
+~$*
+
+# IDE / editör
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini

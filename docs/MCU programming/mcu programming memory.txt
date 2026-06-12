@@ -1,0 +1,22 @@
+Repo path: C:\PressureTransmitter
+firmware path: C:\PressureTransmitter\Firmware
+her congfig'in BOM listesi: C:\PressureTransmitter\BOM
+
+Komponentler:
+
+MCU PN: STM32U385RGT7
+4-20 / 4-20_HART / MODBUS konfig için LCD: DS154S10Z0TG01
+LP_HART / LP_PA konfig için LCD: EA_DOGS104N-A
+Modulator (sadece LP_HART / 4-20_HART ve LP_PA konfiglerinde): DAC8742HPBSR
+Capacitance-converter IC: FDC2214RGHR
+4mA-to-20mA Current Loop Drive (sadece LP_HART konfigde): DAC161S997RGHR
+V-I converter (sadece 4-20 ve 4-20_HART konfiglerinde): XTR111AIDRCR
+external watchdog: TPS3851H30EDRBT
+Temperature monitor: TMP108AIYFFT
+bluetooth: DL-CC2340-B
+
+şema: "C:\PressureTransmitter\4-20.PDF"
+
+Datasheetlerin pathi: C:\PressureTransmitter\DATASHEETS
+
+ilk önce 4-20 konfig için firmware yazılacak. Bir basınç transmitteri bağlanacak, wiring için şema kontrol edilebilir. Ekran 4-20 konfigi ldğu için DS154S10Z0TG01 olacak. sıcaklığa bağlı kompanzasyon yapılmalı. kalibrasyon yapılmalı. ekranda menu state machine i iyi ayarlanmalı. 3 adet buton ile ölçüm ve kalibrasyon yapılabilmeli. Bluetooth ile de bağlantı ypaılıp konfig yapılabilmeli. 
