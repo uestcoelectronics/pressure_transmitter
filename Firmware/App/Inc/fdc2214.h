@@ -21,12 +21,31 @@
 extern "C" {
 #endif
 
-/* I2C 7-bit adres: ADDR=0 → 0x2A, ADDR=1 → 0x2B. Şemaya göre teyit edilmeli. */
+/* I2C 7-bit adres: ADDR=0 → 0x2A, ADDR=1 → 0x2B. Şema teyidine kadar init()
+ * her ikisini de dener; kullanılan adres fdc2214_get_addr() ile okunur.       */
 #define FDC2214_I2C_ADDR_7B   0x2Au
+#define FDC2214_I2C_ADDR_ALT  0x2Bu
 
-/* Sensor reset + register programlama. Ext osc çalışıyor olmalı (CLK_EN HIGH).
+/* Güç/saat sıralaması: CLK_EN HIGH → osc oturma → SD release → oturma.
+ * init() içinden çağrılır; başarısız init sonrası retry için ayrıca da
+ * çağrılabilir (SD toggle ile cihaz state'i sıfırlanır).                      */
+void     fdc2214_power_sequence(void);
+
+/* Sensor reset + register programlama. Güç sıralamasını kendisi uygular,
+ * DEV_ID'yi 0x2A → 0x2B sırasıyla arar.
  * return true → başarılı, device ID doğru                                    */
 bool     fdc2214_init(void);
+
+/* Tespit edilen 7-bit I2C adresi (init sonrası anlamlı).                     */
+uint8_t  fdc2214_get_addr(void);
+
+/* ERRB pinini yokla (aktif-LOW). Asserted ise STATUS register'ı okunur
+ * (okuma flag'leri temizler) ve dahili hata bayrağı kurulur.
+ * return true → ERRB şu an asserted                                          */
+bool     fdc2214_poll_errb(void);
+
+/* INT_B pini (aktif-LOW): yeni dönüşüm verisi hazır mı?                      */
+bool     fdc2214_data_ready(void);
 
 /* Continuous conversion mode'u başlat (CH2 + CH3 sequential).               */
 bool     fdc2214_start(void);

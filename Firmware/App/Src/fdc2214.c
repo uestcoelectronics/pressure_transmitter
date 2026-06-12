@@ -42,6 +42,7 @@
 #define I2C_TIMEOUT_MS          50u
 
 static volatile bool s_errflag = false;
+static uint8_t       s_addr7   = FDC2214_I2C_ADDR_7B;  /* init'te tespit edilir */
 
 /* -------------------------------------------------------------------------- */
 /* Düşük seviye I2C yardımcıları                                              */
@@ -49,14 +50,14 @@ static volatile bool s_errflag = false;
 static bool fdc_write16(uint8_t reg, uint16_t val)
 {
     uint8_t b[2] = { (uint8_t)(val >> 8), (uint8_t)(val & 0xFF) };
-    return HAL_I2C_Mem_Write(&hi2c1, FDC2214_I2C_ADDR_7B << 1, reg,
+    return HAL_I2C_Mem_Write(&hi2c1, (uint16_t)(s_addr7 << 1), reg,
                              I2C_MEMADD_SIZE_8BIT, b, 2, I2C_TIMEOUT_MS) == HAL_OK;
 }
 
 static bool fdc_read16(uint8_t reg, uint16_t *val)
 {
     uint8_t b[2] = {0};
-    if (HAL_I2C_Mem_Read(&hi2c1, FDC2214_I2C_ADDR_7B << 1, reg,
+    if (HAL_I2C_Mem_Read(&hi2c1, (uint16_t)(s_addr7 << 1), reg,
                          I2C_MEMADD_SIZE_8BIT, b, 2, I2C_TIMEOUT_MS) != HAL_OK) {
         return false;
     }
@@ -78,18 +79,37 @@ static bool fdc_read_ch_raw28(uint8_t ch, uint32_t *out)
 }
 
 /* -------------------------------------------------------------------------- */
+/* Güç / saat sıralaması                                                       */
+/* -------------------------------------------------------------------------- */
+void fdc2214_power_sequence(void)
+{
+    /* SD HIGH ile cihazı shutdown'a al (state reset), saat hazır olsun,
+       sonra SD release. X403 (40 MHz XO) oturma süresi için bekleme.         */
+    HAL_GPIO_WritePin(FDC_SD_PORT,     FDC_SD_PIN,     GPIO_PIN_SET);
+    HAL_GPIO_WritePin(FDC_CLK_EN_PORT, FDC_CLK_EN_PIN, GPIO_PIN_SET);
+    HAL_Delay(10);                                   /* XO startup            */
+    HAL_GPIO_WritePin(FDC_SD_PORT,     FDC_SD_PIN,     GPIO_PIN_RESET);
+    HAL_Delay(5);                                    /* cihaz wake-up         */
+}
+
+/* -------------------------------------------------------------------------- */
 /* Init                                                                        */
 /* -------------------------------------------------------------------------- */
 bool fdc2214_init(void)
 {
-    /* CLK_EN HIGH, SD LOW — kart üstünde başka yerde de yapılabilir          */
-    HAL_GPIO_WritePin(FDC_CLK_EN_PORT, FDC_CLK_EN_PIN, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(FDC_SD_PORT,     FDC_SD_PIN,     GPIO_PIN_RESET);
-    HAL_Delay(5);
+    fdc2214_power_sequence();
 
+    /* DEV_ID'yi her iki olası adreste ara (ADDR pini şema teyidine kadar).  */
     uint16_t dev_id = 0;
-    if (!fdc_read16(REG_DEV_ID, &dev_id)) return false;
-    if (dev_id != DEV_ID_FDC2214) return false;
+    s_addr7 = FDC2214_I2C_ADDR_7B;
+    if (!fdc_read16(REG_DEV_ID, &dev_id) || dev_id != DEV_ID_FDC2214) {
+        s_addr7 = FDC2214_I2C_ADDR_ALT;
+        dev_id  = 0;
+        if (!fdc_read16(REG_DEV_ID, &dev_id) || dev_id != DEV_ID_FDC2214) {
+            s_addr7 = FDC2214_I2C_ADDR_7B;           /* varsayılana dön      */
+            return false;
+        }
+    }
 
     /* Soft reset */
     if (!fdc_write16(REG_RESET_DEV, 0x8000)) return false;
@@ -160,3 +180,24 @@ bool fdc2214_read_delta(int32_t *delta)
 
 bool fdc2214_has_error(void)   { return s_errflag; }
 void fdc2214_clear_error(void) { s_errflag = false; }
+
+uint8_t fdc2214_get_addr(void) { return s_addr7; }
+
+bool fdc2214_poll_errb(void)
+{
+    if (HAL_GPIO_ReadPin(FDC_ERRB_PORT, FDC_ERRB_PIN) == GPIO_PIN_RESET) {
+        /* STATUS okuması cihazdaki hata flag'lerini temizler; bayrağı
+           uygulama tarafı fdc2214_clear_error() ile düşürür.                */
+        uint16_t status = 0;
+        (void)fdc_read16(REG_STATUS, &status);
+        s_errflag = true;
+        return true;
+    }
+    return false;
+}
+
+bool fdc2214_data_ready(void)
+{
+    /* ERROR_CONFIG'te DRDY → INT_B yönlendirildi (aktif-LOW).               */
+    return HAL_GPIO_ReadPin(FDC_INT_PORT, FDC_INT_PIN) == GPIO_PIN_RESET;
+}

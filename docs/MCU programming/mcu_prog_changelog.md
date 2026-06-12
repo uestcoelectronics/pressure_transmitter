@@ -144,3 +144,30 @@
 **Risks Resolved:** ADC kanal bug'ı (HIGH) → kapandı
 
 **Next Action:** CARD-1.1 — FDC2214 uygulama tarafı bring-up
+
+## 2026-06-12 | Execute | Task: CARD-1.1
+
+**Task ID:** CARD-1.1
+**Type:** Execute
+**Status:** Complete (kod); donanım doğrulaması MANUAL-4 bekliyor
+
+**Files Created:** Yok
+**Files Modified:**
+- `Firmware/App/Inc/fdc2214.h` — yeni API: power_sequence, get_addr, poll_errb, data_ready; ADDR_ALT 0x2B
+- `Firmware/App/Src/fdc2214.c` — güç/saat sıralaması (SD toggle + XO oturma bekleme), I2C adres otomatik tespiti (0x2A→0x2B), ERRB yoklama + STATUS okuma, INT_B data-ready
+- `Firmware/App/Src/pressure_app.c` — init'te 1× güç-çevrimli retry; 100 ms tikte ERRB yoklama; data-ready gating; ERRB/I2C hatasında alarm-low (3.6 mA); ekran satır 3'e "SENSOR ERR"; temiz okumada otomatik hata temizleme
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+- Statik akış kontrolü: I2C-fail alarm-low davranışı korunmuş (regresyon düzeltildi: i2c_fail ayrı izleniyor)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda DEVICE_ID okuma, ERRB tetikleme/kurtarma senaryosu, INT_B zamanlaması — MANUAL-4 (kart + ST-Link gerekli)
+
+**Result:** FDC2214 bring-up uygulama tarafı tamam. Sıralama: SD=HIGH → CLK_EN=HIGH → 10 ms (XO) → SD=LOW → 5 ms → DEV_ID (0x2A, olmazsa 0x2B). ERRB asserted → STATUS oku + latched hata + alarm-low + "SENSOR ERR"; ERRB düzelip okuma başarılı olunca otomatik temizlenir. main.c'ye dokunulmadı (ERRB/INT_B polling — superloop mimarisine uygun).
+
+**Risks Introduced:** data-ready gating sensör okumalarını INT_B pin davranışına bağladı; donanımda INT_B beklenmedik şekilde HIGH kalırsa ölçüm durur → MANUAL-4 testinde ilk kontrol edilecek madde
+**Risks Resolved:** "FDC ERRB/INT_B kesmeleri uygulamada işlenmiyor" (MEDIUM) → kapandı (polling ile)
+
+**Next Action:** CARD-1.2 — TMP108 ortam izleme + 60 °C alert (FLT_TEMP#)

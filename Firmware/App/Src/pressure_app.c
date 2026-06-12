@@ -75,8 +75,9 @@ static void render_normal(float p, float t, float ma)
     snprintf(line, sizeof line, "P=%7.3f bar     ", (double)p); lcd_write_line(0, line);
     snprintf(line, sizeof line, "I=%5.2f mA       ", (double)ma); lcd_write_line(1, line);
     snprintf(line, sizeof line, "T=%5.1f C        ", (double)t); lcd_write_line(2, line);
-    lcd_write_line(3, loop_is_in_fault() ? "*FAULT*" :
-                       loop_is_enabled() ? "OK"      : "LOOP DISABLED");
+    lcd_write_line(3, loop_is_in_fault()   ? "*FAULT*"    :
+                       fdc2214_has_error() ? "SENSOR ERR" :
+                       loop_is_enabled()   ? "OK"         : "LOOP DISABLED");
 }
 
 static void render_menu(int idx, const char *label)
@@ -126,8 +127,9 @@ void pressure_app_init(void)
     lcd_write_line(1, "  booting...");
     lcd_flush();
 
-    /* Sensor init */
+    /* Sensor init — başarısızsa bir kez güç çevrimiyle dene                  */
     bool fdc_ok = fdc2214_init();
+    if (!fdc_ok) fdc_ok = fdc2214_init();
     if (fdc_ok) fdc2214_start();
 
     /* Loop output init (safe state'te kalır) */
@@ -184,9 +186,23 @@ void pressure_app_loop(void)
         }
         start_adc_scan();
 
-        /* FDC2214 oku */
+        /* FDC2214 hata pini (ERRB) yoklaması — asserted ise STATUS okunur    */
+        bool errb_now  = fdc2214_poll_errb();
+        bool i2c_fail  = false;
+        bool got_data  = false;
         int32_t dC = 0;
-        if (fdc2214_read_delta(&dC)) {
+
+        /* INT_B data-ready değilse bu tikte okuma atlanır (son değer korunur;
+           conversion ~100 ms olduğundan genelde hazırdır)                    */
+        if (!errb_now && fdc2214_data_ready()) {
+            if (fdc2214_read_delta(&dC)) got_data = true;
+            else                         i2c_fail = true;
+        }
+
+        if (got_data) {
+            /* ERRB düzelmiş ve okuma başarılı → latched hatayı temizle       */
+            if (fdc2214_has_error()) fdc2214_clear_error();
+
             const cal_params_t *c = cal_get();
             float t_c = temp_diode_get_celsius();
             p_inst = dC_to_pressure(dC, c, t_c);
@@ -202,10 +218,11 @@ void pressure_app_loop(void)
             if (sm_get_state() == SM_NORMAL && loop_is_enabled() && !loop_is_in_fault()) {
                 loop_set_current_ma(pressure_to_ma(p_filt, c));
             }
-        } else {
-            /* I2C başarısız: alarm-low */
+        } else if (errb_now || i2c_fail || fdc2214_has_error()) {
+            /* Sensör hatası (ERRB veya I2C): alarm-low */
             if (loop_is_enabled()) loop_set_current_ma(3.6f);
         }
+        /* data_ready değilse ve hata yoksa: sadece bu tik atlandı             */
     }
 
     /* ---- Ekran tazeleme (her 250 ms) ---- */
