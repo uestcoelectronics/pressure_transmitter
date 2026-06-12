@@ -32,7 +32,7 @@
 | Alan | Durum |
 |---|---|
 | Build baseline | **complete** — CARD-0.1 ile düzeltildi (DOUBLEWORD); temiz build, 0 uyarı |
-| FDC2214 sürücü | in progress — kod var, CLK_EN/SD eksik (CARD-1.1) |
+| FDC2214 sürücü | complete (kod) — CARD-1.1: sıralama+adres tespiti+ERRB/INT_B; donanım testi MANUAL-4 |
 | Sıcaklık ölçümü | in progress — diyot modeli doğru (1N4148 teyitli); PC1 kanalı + TMP108 ortam/alert eksik (CARD-1.2/1.3) |
 | Kalibrasyon + flash | complete (build fix sonrası) — donanım testi yok |
 | LCD + menü | complete (kod) — donanım testi yok, iyileştirme planlı |
@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** MANUAL-3 + ADC re-rank (CARD-1.3'ün .ioc ayağı) | **Tarih:** 2026-06-12
+- **Task ID:** CARD-1.1 | **Tarih:** 2026-06-12 | **Commit:** 07d6df2
+- **Özet:** FDC2214 uygulama tarafı bring-up: güç/saat sıralaması (SD toggle + XO bekleme), I2C adres otomatik tespiti (0x2A→0x2B), ERRB polling (STATUS okuma + latched hata + alarm-low + "SENSOR ERR"), INT_B data-ready gating, init retry. Build PASS 0/0. Donanım testi MANUAL-4'te. main.c'ye dokunulmadı.
+- **Önceki:** MANUAL-3 + ADC re-rank | **Tarih:** 2026-06-12
 - **Özet:** Kullanıcı CubeMX'te ADC'yi düzeltti ve regenerate etti: 4 kanal — IN1 (PC0 diyot#1), IN2 (PC1 diyot#2), IN11 (PC4 VCC_FB), IN12 (PC5 I_FB). Rank kanal bug'ı kapandı. Diff kontrolü: yalnız adc.c/.ioc/.mxproject değişti, USER CODE korunmuş. bsp_pins.h: ADC_RANK_TDIODE2=1 eklendi, VCC_FB=2/ILOOP_FB=3/COUNT=4. Build PASS (0/0). **Düzeltme: PC4/PC5 = IN11/IN12** (PIN_MAPPING.xlsx'teki IN13/IN14 HATALI — kullanıcı görsel teyidi + CubeMX).
 - **Önceki görev:** CARD-0.2 (+ CARD-0.3) | **Tarih:** 2026-06-12
 - **Özet:** CARD-0.3: git init (main, e2120fe, 392 dosya, .gitignore). CARD-0.2: bsp_pins.h'a 7 eksik alias eklendi (FLT_TEMP, BLE×4, RST_TI, TEST_MODE), ADC/diyot yorumları düzeltildi. **Yeni bulgular:** (1) .ioc FDC pinlerini zaten tanımlıyor — CLK_EN boot'ta HIGH (saat riski kapandı); eksik olan uygulama tarafı işleme. (2) **ADC bug: adc.c 3 rank'ın üçünde de CHANNEL_1 örnekliyor** — VCC_FB/I_FB hiç okunmuyor; düzeltme .ioc'ta (MANUAL-3'e eklendi).
@@ -57,8 +59,8 @@
 
 ## Next Recommended Task
 
-- **CARD-1.1 — FDC2214 bring-up (uygulama tarafı):** ERRB/INT_B kesme işleme, SD/CLK_EN sıralamasının uygulama kontrolüne alınması, I2C adres tanısı. Donanım gerektirmeyen kısmı kodlanabilir.
-- Paralel açık: **MANUAL-3** (CubeMX: ADC rank kanalları bug fix + PC1 ekleme) — CARD-1.3'ün ön koşulu; erken yapılması CARD-4.1'in de önünü açar.
+- **CARD-1.2 — TMP108 ortam izleme + 60 °C alert (FLT_TEMP#):** yeni tmp108.c/h, T_HIGH=60/T_LOW=55 konfigürasyonu, PB5 işleme. Donanım gerektirmeyen kısmı kodlanabilir.
+- Sonrası: CARD-1.3 (1N4148 çift kanal — .ioc ayağı zaten tamam, yalnız kod kaldı).
 
 ## Open Risks
 
@@ -67,7 +69,7 @@
 | ~~Git yok~~ | — | KAPANDI: CARD-0.3 (main, e2120fe) |
 | ~~ADC rank kanal bug'ı~~ | — | KAPANDI: MANUAL-3 regenerate (4 kanal doğru atandı) |
 | PIN_MAPPING.xlsx AF kolonunda hatalar olabilir (IN13/14 örneği) | LOW | Pin haritası net isimleri için otorite; AF/kanal no'ları CubeMX/datasheet'ten teyit edilir |
-| FDC ERRB/INT_B kesmeleri uygulamada işlenmiyor | MEDIUM | CARD-1.1 |
+| INT_B data-ready gating: pin beklenmedik HIGH kalırsa ölçüm durur | MEDIUM | MANUAL-4 ilk test maddesi; gerekirse timeout fallback eklenir |
 | TMP108 ortam alert'i ve PC1 diyot kanalı eksik | MEDIUM | CARD-1.2/1.3/1.4 |
 | TPS3851 pencere ihlali → reset döngüsü | MEDIUM | CARD-6.1 zamanlama analizi |
 | cal_save flash erase sırasında IWDG reset | MEDIUM | CARD-6.1 kick stratejisi |

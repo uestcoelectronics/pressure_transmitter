@@ -31,9 +31,10 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P0 TAMAMLANDI (CARD-0.1/0.2/0.3) | **Son:** CARD-0.2 (seviye 2)
-- **Sıradaki:** CARD-1.1 FDC bring-up (uygulama tarafı) + MANUAL-3 (CubeMX ADC düzeltmesi — kullanıcıda)
+- **Faz:** P1 in progress | **Son:** CARD-1.1 FDC bring-up (seviye 2, commit 07d6df2)
+- **Sıradaki:** CARD-1.2 TMP108 ortam+alert → CARD-1.3 1N4148 çift kanal (ADC .ioc ayağı hazır)
 - Implementation: kart bazında ONAYLI (kullanıcı 2026-06-12)
+- FDC2214: adres otomatik tespit (0x2A/0x2B), ERRB/INT_B polling, SD+CLK_EN sıralaması app'te
 
 ## Önemli Varsayımlar (onaylanmamış)
 - NAMUR NE43 alarm seviyeleri (D3); BLE AT+transparent+CRC çerçeve (D4); menü timeout 60 s (D5); 1N4148 V_f25≈600 mV @ ~1 mA / TC≈−2 mV/°C (D6 — bias direnci MANUAL-2); TMP108 histerezis 60/55 °C, alarmda ölçüm sürer (D8)
