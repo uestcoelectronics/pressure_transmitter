@@ -90,24 +90,62 @@ static float pressure_to_ma(float p, const cal_params_t *c)
 /* -------------------------------------------------------------------------- */
 /* Görüntüleme yardımcıları                                                    */
 /* -------------------------------------------------------------------------- */
-static void render_normal(float p, float t, float ma)
+/* Son gösterim değerleri (sensör tikinde güncellenir) */
+static float   s_disp_p  = 0.0f;
+static int32_t s_disp_dc = 0;
+
+/* Durum satırı önceliği (tüm NORMAL sayfalarında ortak) */
+static const char *status_line(void)
+{
+    return loop_is_in_fault()           ? "*FAULT*"      :
+           fdc2214_has_error()          ? "SENSOR ERR"   :
+           loop_has_deviation()         ? "LOOP DEV"     :
+           !temp_diode_is_consistent()  ? "TDIODE ERR"   :
+           tmp108_overtemp()            ? "AMB HOT >60C" :
+           loop_is_enabled()            ? "OK"           : "LOOP DISABLED";
+}
+
+/* Loop fault → adanmış alarm ekranı (CARD-4.1: 5 s sonra auto-retry) */
+static void render_fault(void)
+{
+    lcd_write_line(0, "*** LOOP FAULT ***");
+    lcd_write_line(1, "FLT input (PA6)");
+    lcd_write_line(2, "Output: 3.6 mA");
+    lcd_write_line(3, "auto-retry 5s");
+}
+
+static void render_normal(uint8_t page)
 {
     char line[24];
-    snprintf(line, sizeof line, "P=%7.3f bar     ", (double)p); lcd_write_line(0, line);
-    snprintf(line, sizeof line, "I=%5.2f mA       ", (double)ma); lcd_write_line(1, line);
-    snprintf(line, sizeof line, "T=%5.1f C        ", (double)t); lcd_write_line(2, line);
-    lcd_write_line(3, loop_is_in_fault()             ? "*FAULT*"      :
-                       fdc2214_has_error()           ? "SENSOR ERR"   :
-                       loop_has_deviation()          ? "LOOP DEV"     :
-                       !temp_diode_is_consistent()   ? "TDIODE ERR"   :
-                       tmp108_overtemp()             ? "AMB HOT >60C" :
-                       loop_is_enabled()             ? "OK"           : "LOOP DISABLED");
+    switch (page) {
+    default:
+    case 0:   /* MAIN: P / I / T / durum */
+        snprintf(line, sizeof line, "P=%7.3f bar     ", (double)s_disp_p);  lcd_write_line(0, line);
+        snprintf(line, sizeof line, "I=%5.2f mA       ", (double)loop_get_measured_ma()); lcd_write_line(1, line);
+        snprintf(line, sizeof line, "T=%5.1f C        ", (double)temp_diode_get_celsius()); lcd_write_line(2, line);
+        lcd_write_line(3, status_line());
+        break;
+    case 1:   /* SENSOR: ham dC + iki diyot + ortam */
+        lcd_write_line(0, "-- SENSOR --");
+        snprintf(line, sizeof line, "dC=%ld", (long)s_disp_dc); lcd_write_line(1, line);
+        snprintf(line, sizeof line, "Td1=%4.1f Td2=%4.1f",
+                 (double)temp_diode_get_ch_celsius(0),
+                 (double)temp_diode_get_ch_celsius(1)); lcd_write_line(2, line);
+        snprintf(line, sizeof line, "Tamb=%4.1f C", (double)tmp108_get_ambient_c()); lcd_write_line(3, line);
+        break;
+    case 2:   /* LOOP: komut / ölçüm / sapma */
+        lcd_write_line(0, "-- LOOP --");
+        snprintf(line, sizeof line, "cmd =%5.2f mA", (double)loop_get_commanded_ma()); lcd_write_line(1, line);
+        snprintf(line, sizeof line, "meas=%5.2f mA", (double)loop_get_measured_ma()); lcd_write_line(2, line);
+        snprintf(line, sizeof line, "err =%+5.2f mA", (double)loop_get_error_ma()); lcd_write_line(3, line);
+        break;
+    }
 }
 
 static void render_menu(int idx, const char *label)
 {
     char line[24];
-    snprintf(line, sizeof line, "MENU %d/11", idx + 1);  /* MI__COUNT ile senkron */
+    snprintf(line, sizeof line, "MENU %d/12", idx + 1);  /* MI__COUNT ile senkron */
     lcd_write_line(0, line);
     lcd_write_line(1, label);
     /* Transient mesaj (yakalama/kayıt sonucu, çıkış onayı) varsa göster     */
@@ -204,6 +242,7 @@ void pressure_app_loop(void)
     if ((now - t_btn) >= 5) {
         t_btn = now;
         buttons_poll(now);
+        sm_tick(now);                       /* zaman tabanı + 60 s timeout */
         btn_event_t e = buttons_get_event();
         if (e != BTN_EVT_NONE) sm_handle_event(e);
     }
@@ -244,6 +283,8 @@ void pressure_app_loop(void)
             p_inst = dC_to_pressure(dC, c, t_c);
             /* Damping */
             p_filt = iir_step(p_filt, p_inst, c->damping_s, 0.1f);
+            s_disp_p  = p_filt;             /* sayfa render'ı için cache    */
+            s_disp_dc = dC;
 
             /* state machine'e canlı veri */
             if (sm_get_state() == SM_CAL_LIVE) {
@@ -275,9 +316,8 @@ void pressure_app_loop(void)
         t_disp = now;
         switch (sm_get_state()) {
             case SM_NORMAL:
-                render_normal(p_filt,
-                              temp_diode_get_celsius(),
-                              loop_get_measured_ma());
+                if (loop_is_in_fault()) render_fault();
+                else                    render_normal(sm_get_normal_page());
                 break;
             case SM_MENU:
                 render_menu(sm_get_menu_idx(), sm_get_edit_label());

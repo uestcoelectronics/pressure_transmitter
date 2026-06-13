@@ -18,9 +18,10 @@ typedef enum {
     MI_KT_SPAN,       /* k_T span (gain)   */
     MI_VF25,
     MI_TC,
+    MI_BACKLIGHT,     /* ekran parlaklığı (runtime, kalıcı değil) */
     MI_SAVE_EXIT,
     MI_EXIT,
-    MI__COUNT         /* pressure_app render_menu "/11" ile senkron tut */
+    MI__COUNT         /* pressure_app render_menu "/N" ile senkron tut */
 } menu_item_t;
 
 static const char *MENU_LABELS[MI__COUNT] = {
@@ -33,6 +34,7 @@ static const char *MENU_LABELS[MI__COUNT] = {
     "kT span (bar/C)",
     "Vf25 (mV)",
     "TC (mV/C)",
+    "Backlight (%)",
     "Save & Exit",
     "Exit (no save)"
 };
@@ -43,6 +45,8 @@ static const char *MENU_LABELS[MI__COUNT] = {
 #define CAL_STAB_WIN          8       /* ~0.8 s @ 100 ms örnekleme            */
 #define CAL_STAB_P2P_MAX      2000    /* ΔC peak-to-peak stabilite eşiği      */
 #define CAL_MIN_SPAN_COUNTS   10000   /* zero↔span arası asgari ΔC farkı      */
+#define MENU_TIMEOUT_MS       60000u  /* eylemsizlik → NORMAL (discard)       */
+#define BACKLIGHT_DEFAULT     60u
 
 /* -------------------------------------------------------------------------- */
 static sm_state_t  s_state    = SM_NORMAL;
@@ -65,6 +69,14 @@ static bool        s_confirm_exit = false;
 static const char *s_info_msg     = "";
 static const char  MSG_UNSTABLE[] = "UNSTABLE - WAIT";
 
+/* Zaman tabanı + eylemsizlik timeout */
+static uint32_t    s_now_ms       = 0;
+static uint32_t    s_last_activity= 0;
+
+/* NORMAL ekran sayfası + backlight (runtime) */
+static uint8_t     s_normal_page  = 0;
+static uint8_t     s_backlight_pct= BACKLIGHT_DEFAULT;
+
 static void reset_stab_window(void)
 {
     s_dc_win_n   = 0;
@@ -78,8 +90,13 @@ void sm_init(void)
     s_dirty        = false;
     s_confirm_exit = false;
     s_info_msg     = "";
+    s_normal_page  = 0;
+    s_backlight_pct= BACKLIGHT_DEFAULT;
     reset_stab_window();
 }
+
+uint8_t sm_get_normal_page(void)   { return s_normal_page; }
+uint8_t sm_get_backlight_pct(void) { return s_backlight_pct; }
 
 sm_state_t  sm_get_state(void)         { return s_state; }
 int         sm_get_menu_idx(void)      { return s_menu_idx; }
@@ -139,6 +156,7 @@ static void enter_edit(menu_item_t mi)
         case MI_KT_SPAN:  s_edit_val = c->k_t_span;  s_edit_step = 0.001f;break;
         case MI_VF25:     s_edit_val = c->vf25_mv;   s_edit_step = 1.0f;  break;
         case MI_TC:       s_edit_val = c->tc_mv_c;   s_edit_step = 0.1f;  break;
+        case MI_BACKLIGHT:s_edit_val = (float)s_backlight_pct; s_edit_step = 5.0f; break;
         default: break;
     }
     s_state = SM_EDIT_FLOAT;
@@ -158,9 +176,17 @@ static void commit_edit(void)
                           temp_diode_set_calibration(c->vf25_mv, c->tc_mv_c); break;
         case MI_TC:       c->tc_mv_c   = s_edit_val;
                           temp_diode_set_calibration(c->vf25_mv, c->tc_mv_c); break;
+        case MI_BACKLIGHT: {
+            /* Ekran ayarı — cal_params'a ait değil, kalıcı değil, s_dirty yok */
+            float v = s_edit_val;
+            if (v < 0.0f) v = 0.0f; else if (v > 100.0f) v = 100.0f;
+            s_backlight_pct = (uint8_t)(v + 0.5f);
+            lcd_set_backlight(s_backlight_pct);
+            return;
+        }
         default: break;
     }
-    s_dirty = true;
+    s_dirty = true;   /* yalnız cal_params değişiklikleri kaydı kirletir */
 }
 
 /* Kayıt öncesi tutarlılık denetimi — geçersizse mesaj döner, NULL = geçerli  */
@@ -180,6 +206,9 @@ void sm_handle_event(btn_event_t e)
 {
     cal_params_t *c = cal_get_mutable();
 
+    /* Her buton olayı eylemsizlik sayacını sıfırlar */
+    s_last_activity = s_now_ms;
+
     switch (s_state) {
     /* ---------------- NORMAL ---------------- */
     case SM_NORMAL:
@@ -189,6 +218,11 @@ void sm_handle_event(btn_event_t e)
             s_dirty        = false;
             s_confirm_exit = false;
             s_info_msg     = "";
+        } else if (e == BTN_EVT_UP_SHORT || e == BTN_EVT_UP_LONG) {
+            s_normal_page = (uint8_t)((s_normal_page + SM_NORMAL_PAGES - 1u)
+                                      % SM_NORMAL_PAGES);
+        } else if (e == BTN_EVT_DN_SHORT || e == BTN_EVT_DN_LONG) {
+            s_normal_page = (uint8_t)((s_normal_page + 1u) % SM_NORMAL_PAGES);
         }
         break;
 
@@ -289,4 +323,25 @@ void sm_handle_event(btn_event_t e)
         break;
     }
     (void)c;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Periyodik servis: zaman tabanı + eylemsizlik timeout                        */
+/* -------------------------------------------------------------------------- */
+void sm_tick(uint32_t now_ms)
+{
+    s_now_ms = now_ms;
+
+    if (s_state == SM_NORMAL) return;
+
+    if ((now_ms - s_last_activity) >= MENU_TIMEOUT_MS) {
+        /* Kaydedilmemiş değişiklikleri iptal et (Exit-no-save gibi) */
+        cal_init();
+        const cal_params_t *c = cal_get();
+        temp_diode_set_calibration(c->vf25_mv, c->tc_mv_c);
+        s_dirty        = false;
+        s_confirm_exit = false;
+        s_info_msg     = "";
+        s_state        = SM_NORMAL;
+    }
 }

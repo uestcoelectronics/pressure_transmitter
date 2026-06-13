@@ -180,3 +180,22 @@
 **Diff budget:** 1 değişen, 0 yeni.
 **Done criteria:** temiz build; güç sırası + reset zamanlaması sabitleri + tam üretici init dizisi kodda; donanım MANUAL-4.
 **Stop conditions:** lcd400.h veya başka dosya gerekirse dur.
+
+## TASK PACKET CARD-3.2 — 2026-06-13
+
+**Goal:** Menü/UI iyileştirmeleri: 60 s eylemsizlik timeout→NORMAL (discard); NORMAL ekranda sayfa geçişi (MAIN/SENSOR/LOOP — P/T/mA/ΔC); fault/alarm ekranı; backlight % menü öğesi.
+**Non-goals:** Storage formatı değişikliği (backlight runtime-only bu kartta); BLE; render motoru.
+**Current state:** sm event-driven, zaman bilgisi yok; NORMAL'de UP/DN/SET-short işlevsiz; render_normal tek sayfa; menü 11 öğe; backlight lcd_init'te sabit %60.
+**Tasarım kararları:**
+- Timeout: sm_tick(now) 5 ms tikte; her event s_last_activity'yi damgalar; non-NORMAL'de 60 s eylemsizlik → cal_init+temp sync (discard) → NORMAL
+- Sayfalar: s_normal_page 0..2 (MAIN/SENSOR/LOOP); NORMAL'de UP/DN döndürür; SET_LONG menüye girer (korunur)
+- Fault ekranı: loop_is_in_fault() → render_fault() (sayfadan bağımsız; CARD-4.1 5 s auto-retry ile kendiliğinden temizlenir)
+- Backlight: MI_BACKLIGHT menü öğesi (12 öğe); edit step 5; commit canlı lcd_set_backlight; **kalıcı DEĞİL** (boot %60) — s_dirty tetiklemez (cal değişikliği değil)
+**Exact files inspected:** state_machine.c (tam), state_machine.h (tam), pressure_app.c (render+loop, tam).
+**Files allowed to edit:** App/Inc/state_machine.h, App/Src/state_machine.c, App/Src/pressure_app.c (3 — bütçe içinde)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda: menüde 60 s bekle → NORMAL'e dönüş; NORMAL UP/DN ile 3 sayfa; loop fault → alarm ekranı; backlight menüsü → anlık parlaklık değişimi.
+**Rollback plan:** git checkout -- <3 dosya>
+**Diff budget:** 3 değişen, 0 yeni.
+**Done criteria:** temiz build; timeout+sayfalar+fault ekranı+backlight kodda; donanım MANUAL-4.
+**Stop conditions:** storage/başka dosya gerekirse dur (backlight persistansı ayrı karta).

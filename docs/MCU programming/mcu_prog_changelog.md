@@ -356,3 +356,30 @@
 **Risks Resolved:** Eksik güç-kontrol/gamma register'ları (sönük/yanlış ekran riski) → kapandı
 
 **Next Action:** CARD-3.2 — menü state machine iyileştirmeleri (timeout, sayfalar, alarm ekranı, backlight menü)
+
+## 2026-06-13 | Execute | Task: CARD-3.2
+
+**Task ID:** CARD-3.2
+**Type:** Execute
+**Status:** Complete (kod) — P3 fazı kod tarafı TAMAMLANDI
+
+**Files Created:** Yok
+**Files Modified:**
+- `App/Inc/state_machine.h` — SM_NORMAL_PAGES=3; sm_tick(), sm_get_normal_page(), sm_get_backlight_pct() API
+- `App/Src/state_machine.c` — MI_BACKLIGHT menü öğesi (12 öğe); 60 s eylemsizlik timeout (sm_tick → cal_init+temp sync ile discard → NORMAL); NORMAL'de UP/DN sayfa geçişi; her event activity damgası; backlight runtime (canlı lcd_set_backlight, s_dirty tetiklemez)
+- `App/Src/pressure_app.c` — sayfa-duyarlı render_normal (MAIN P/I/T, SENSOR dC+Td1/Td2+Tamb, LOOP cmd/meas/err); render_fault() adanmış alarm ekranı; status_line() helper; menü "/12"; sm_tick(now) 5 ms tikte; s_disp_p/s_disp_dc cache
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+- Statik kontrol: timeout discard yolu Exit-no-save ile aynı semantik; backlight cal kaydını kirletmiyor
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda 60 s timeout, 3 sayfa gezinme, fault ekranı görünümü, backlight canlı değişimi — MANUAL-4
+
+**Result:** UI sahaya hazır: eylemsizlikte güvenli NORMAL dönüşü, NORMAL'de 3 bilgi sayfası (basınç/sensör/loop), loop fault'ta adanmış alarm ekranı, menüden canlı backlight. Backlight kalıcı DEĞİL (boot %60) — persistans bilinçli olarak ertelendi (format v2 kapalı; gelecekte storage bump'ı ile eklenebilir).
+
+**Risks Introduced:** Backlight reboot'ta %60'a döner (saha için küçük kısıt — persistans ertelendi)
+**Risks Resolved:** Eylemsizlikte menüde kalma; tek-sayfa kısıtı; fault görünürlüğü
+
+**Next Action:** CARD-5.1 — BLE UART taşıma katmanı (MANUAL-5 datasheet indirme önkoşulu) veya CARD-6.1 — TPS3851 watchdog

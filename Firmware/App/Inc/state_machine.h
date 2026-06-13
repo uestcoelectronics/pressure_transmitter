@@ -41,10 +41,23 @@ typedef enum {
     SM_SAVE_PENDING
 } sm_state_t;
 
+#define SM_NORMAL_PAGES   3u    /* NORMAL ekran sayfaları: MAIN/SENSOR/LOOP   */
+
 void        sm_init(void);
 
 /* Bir buton olayı işle. */
 void        sm_handle_event(btn_event_t e);
+
+/* Periyodik servis (5 ms tikte çağrılır): zaman tabanını günceller ve
+ * menü/edit/cal ekranlarında 60 s eylemsizlik sonrası NORMAL'e döner
+ * (kaydedilmemiş değişiklikler iptal edilir).                              */
+void        sm_tick(uint32_t now_ms);
+
+/* NORMAL ekranda aktif sayfa (0..SM_NORMAL_PAGES-1). */
+uint8_t     sm_get_normal_page(void);
+
+/* Geçerli backlight yüzdesi (runtime — kalıcı değil, boot'ta %60). */
+uint8_t     sm_get_backlight_pct(void);
 
 /* Ana loop'un display ihtiyacı için. */
 sm_state_t  sm_get_state(void);
