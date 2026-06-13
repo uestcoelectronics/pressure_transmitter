@@ -38,14 +38,16 @@
 | Kalibrasyon + flash | complete (kod) — v2 format + migrasyon + kompanzasyon v2; sağlamlaştırma CARD-2.2; donanım testi yok |
 | LCD + menü | complete (kod) — LCD init (3.1) + menü timeout/sayfa/alarm/backlight (3.2); donanım testi yok |
 | 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
-| BLE | not started |
+| BLE | in progress — taşıma katmanı complete (CARD-5.1: UART ring+güç+pin); protokol CARD-5.2; donanım testi yok |
 | Watchdog | complete (kod) — CARD-6.1: A.16 koşullu besleme + flash-safe + deterministik kenar; CWD pencere teyidi (MANUAL-2 m.6) açık |
 | Tanılar (diag) | complete (kod) — CARD-6.2: ADC rail-stuck + GPIO read-back + I2C recovery; donanım testi yok |
 | Donanım doğrulama | not started |
 
 ## Last Completed Task
 
-- **Task ID:** CARD-6.2 | **Tarih:** 2026-06-13 | **Commit:** 02d0c3e — **P6 kod tarafı TAMAM**
+- **Task ID:** CARD-5.1 | **Tarih:** 2026-06-13 | **Commit:** b9e7c5b
+- **Özet:** BLE taşıma katmanı (yeni ble_uart.c/h): USART3 IT RX ring (256B), TX, güç/reset/mode sırası, AUX data-ready. USART3 IRQ app'ten enable (.ioc değişmedi). Datasheet (C19273634.pdf): baud 115200 uyumlu. Build PASS 0/0. MANUAL-5 done.
+- **Önceki:** CARD-6.2 | Commit: 02d0c3e — P6 kod tarafı TAMAM
 - **Özet:** Diag modülü (yeni diag.c/h): A.13 ADC rail-stuck (VCC/I_loop, divider-bağımsız), A.7 GPIO read-back (LOOP_EN kritik→safe state), I2C 9-clock bus recovery (iki cihaz takılınca + reinit). Ekranda "DIAG CHK". Build PASS 0/0.
 - **Önceki:** CARD-6.1 | Commit: f63ecaf
 - **Özet:** TPS3851 windowed watchdog: deterministik düşen-kenar besleme (wdt_feed_raw), güvenlik görevi canlılığına koşullu (A.16, 400 ms health), cal_save erase öncesi besleme. Datasheet analizi (web). Build PASS 0/0. **Açık önkoşul:** CWD pencere değeri (MANUAL-2 m.6) → 100 ms kick uyumu doğrulanmalı.
@@ -79,7 +81,7 @@
 
 ## Next Recommended Task
 
-- **CARD-5.1 — BLE UART taşıma katmanı.** **ÖNKOŞUL: MANUAL-5** (DL-CC2340-B datasheet'i `DATASHEETS\`'e indir; pin işlevleri + varsayılan baud teyidi). Datasheet gelmeden başlanamaz — bu blocking. Alternatif: kalan tek kod işi BLE; donanım kartları (7.x) için kart + MANUAL-2/4 gerekli.
+- **CARD-5.2 — BLE konfigürasyon protokolü:** AT init dizisi (cihaz adı, advertise başlat), URC parse (+CONNOK/+DISCONN), çerçeve protokolü (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO, CRC16). Son kod kartı; sonrası yalnız donanım 7.x (kart + MANUAL-2/4 gerekli).
 
 ## Open Risks
 

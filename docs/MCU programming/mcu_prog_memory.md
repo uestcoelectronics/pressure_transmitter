@@ -13,7 +13,7 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 - ADC düzeni (regenerate 2026-06-12, bug kapandı): Rank1=IN1/PC0 diyot#1, Rank2=IN2/PC1 diyot#2, Rank3=IN11/PC4 VCC_FB, Rank4=IN12/PC5 I_FB; ADC_RANK_COUNT=4. NOT: PIN_MAPPING.xlsx'in IN13/IN14 bilgisi HATALIYDI — kanal no'larında CubeMX/datasheet otorite
 - **Sıcaklık mimarisi (KULLANICI TEYİTLİ):** Kompanzasyon = PC0/PC1 **1N4148 diyotlar** (sensör içi; datasheet: `__TI_DATASHEETS\1N914-D.PDF` 1N4x48 dahil) — temp_diode.c modeli doğru, PC1 kanalı eklenecek. **TMP108 = yalnız ortam sıcaklığı**, T_HIGH=60 °C alert → FLT_TEMP# (PB5) kesmesi. TMP108 kompanzasyonda KULLANILMAZ, failover da yapılmaz
 - LCD: BDS154S10Z0TG01 = **ST7789V** 240×240 SPI (datasheet teyitli) — lcd400.c uyumlu
-- BLE modülü AT komutlu (DreamLNK DL-CC2340-B, CC2340R5); USART3 PC10/PC11; sürücü YOK
+- BLE: DL-CC2340-B (datasheet C19273634.pdf), 115200 8N1, AT "AT+<cmd> p1,p2"→OK/ERROR, URC +CONNOK/+DISCONN. Pinler: DIO20→PC10(RX), DIO22←PC11(TX), MODE/PB12(wake=HIGH), AUX/PB0(data-ready), RESET/PA15(OD), PWR/PC2. CARD-5.1 taşıma katmanı (ble_uart.c) hazır; USART3 IRQ app'ten enable (.ioc'de kapalı)
 - Watchdog: TPS3851H30 (windowed, düşen-kenar) WDI=PC3 + IWDG ~256 ms. CARD-6.1: wdt_feed_raw() koşullu besleme (güvenlik görevi canlı + 400 ms), cal_save erase öncesi besler. tWD CWD'ye bağlı (std 0.7ms-3.23s/ext 62ms-77s) — KICK 100 ms pencereye düşmeli, CWD şema teyidi MANUAL-2 m.6
 
 ## Kullanıcı Tercihleri
@@ -31,8 +31,8 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P0-P4+P6 kod TAMAM | **Son:** CARD-6.2 diag (02d0c3e)
-- **Sıradaki:** CARD-5.1 BLE UART — **MANUAL-5 (datasheet indirme) BLOCKING önkoşul**. Sonra 5.2 + 7.x donanım manuel
+- **Faz:** P0-P4+P6 + CARD-5.1 kod TAMAM | **Son:** CARD-5.1 BLE taşıma (b9e7c5b)
+- **Sıradaki:** CARD-5.2 BLE protokolü (AT init, advertise, URC parse, GET/SET çerçeve+CRC). Son kod kartı; sonrası 7.x donanım manuel
 - diag modülü: ADC rail-stuck, GPIO read-back (LOOP_EN kritik→safe state), I2C 9-clock recovery; ekranda "DIAG CHK"
 - UI: 60 s timeout, NORMAL 3 sayfa (sm_get_normal_page), fault alarm ekranı, backlight runtime (%60 boot, kalıcı değil)
 - Loop: NAMUR sabitleri xtr111_loop.h'ta; komut penceresi 3.6..21.0; sapma 0.3 mA/2 s; FLT retry 5 s

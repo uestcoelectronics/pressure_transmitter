@@ -78,12 +78,12 @@ const D = {
   repoPath:      "C:\\PressureTransmitter",
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
   branch:        "main",
-  lastCommit:    "02d0c3e",
+  lastCommit:    "b9e7c5b",
   lastUpdated:   "2026-06-13",
   implementationAllowed: true,
   validationLevel: 2,
 
-  progress: { done: 14, total: 16 },
+  progress: { done: 15, total: 16 },
 
   phases: [
     { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "complete" },
@@ -91,7 +91,7 @@ const D = {
     { id: "P2", title: "Kalibrasyon & Sıcaklık Kompanzasyonu", status: "complete" },
     { id: "P3", title: "Ekran & Menü İyileştirme",             status: "complete" },
     { id: "P4", title: "4-20 mA Döngü Bütünlüğü",              status: "complete" },
-    { id: "P5", title: "Bluetooth Konfigürasyon",              status: "not_started" },
+    { id: "P5", title: "Bluetooth Konfigürasyon",              status: "in_progress" },
     { id: "P6", title: "Watchdog & Tanılar",                   status: "complete" },
     { id: "P7", title: "Donanım Doğrulama & Sürüm",            status: "not_started" },
   ],
@@ -109,8 +109,8 @@ const D = {
     { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "done",        blockedBy: null },
     { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "done",        blockedBy: null },
     { id: "CARD-4.1", title: "Loop makullük + NAMUR alarmları",        status: "done",        blockedBy: null },
-    { id: "CARD-5.1", title: "BLE UART taşıma katmanı",                status: "next",        blockedBy: "MANUAL-5" },
-    { id: "CARD-5.2", title: "BLE konfigürasyon protokolü",            status: "not_started", blockedBy: "CARD-5.1" },
+    { id: "CARD-5.1", title: "BLE UART taşıma katmanı",                status: "done",        blockedBy: null },
+    { id: "CARD-5.2", title: "BLE konfigürasyon protokolü",            status: "next",        blockedBy: null },
     { id: "CARD-6.1", title: "TPS3851 pencere teyidi + WD stratejisi", status: "done",        blockedBy: null },
     { id: "CARD-6.2", title: "Temel tanılar (diag modülü)",            status: "done",        blockedBy: null },
   ],
@@ -136,7 +136,7 @@ const D = {
   manualSteps: [
     { n: 1, title: "Donanım test düzeneği (ST-Link + 24V + 250Ω)", blocking: false, tool: "Donanım",    status: "waiting" },
     { n: 2, title: "Şema teyitleri (diyot bias, ADDR, R_SET, kristaller)", blocking: true, tool: "PDF/Altium", status: "waiting" },
-    { n: 5, title: "DL-CC2340-B datasheet indir",                  blocking: true,  tool: "Browser",     status: "waiting" },
+    { n: 5, title: "DL-CC2340-B datasheet indir (C19273634.pdf)",  blocking: false, tool: "Browser",     status: "complete" },
   ],
 
   doNotTouchList: [
@@ -149,9 +149,9 @@ const D = {
   ],
 
   lastChangedFiles: [
-    "Firmware/App/Inc+Src/diag — YENİ: ADC rail-stuck + GPIO read-back + I2C recovery (CARD-6.2)",
-    "Firmware/App/Src/pressure_app.c — diag_service + safe state + I2C recovery (CARD-6.2)",
-    "Firmware/App/Src/pressure_app.c — wdt_feed_raw + A.16 koşullu besleme (CARD-6.1)",
+    "Firmware/App/Inc+Src/ble_uart — YENİ: USART3 IT ring + güç/pin sırası (CARD-5.1)",
+    "Firmware/App/Src/pressure_app.c — ble_uart_init (CARD-5.1)",
+    "Firmware/App/Inc+Src/diag — ADC rail-stuck + GPIO read-back + I2C recovery (CARD-6.2)",
   ],
 
   changelog: [
@@ -171,9 +171,10 @@ const D = {
     { date: "2026-06-13", id: "CARD-3.2",      type: "Execute",    summary: "Menü: 60 s timeout, NORMAL 3 sayfa (MAIN/SENSOR/LOOP), fault alarm ekranı, backlight % (runtime). P3 kod tarafı TAMAM. Build PASS." },
     { date: "2026-06-13", id: "CARD-6.1",      type: "Execute",    summary: "TPS3851 windowed WD: deterministik düşen-kenar, A.16 koşullu besleme (400ms health), flash-safe. Datasheet analizi. CWD pencere teyidi MANUAL-2 m.6. Build PASS." },
     { date: "2026-06-13", id: "CARD-6.2",      type: "Execute",    summary: "Diag modülü: ADC rail-stuck (A.13), GPIO read-back (A.7, LOOP_EN→safe state), I2C 9-clock bus recovery. P6 kod tarafı TAMAM. Build PASS." },
+    { date: "2026-06-13", id: "CARD-5.1",      type: "Execute",    summary: "BLE taşıma: USART3 IT RX ring + güç/reset/mode sırası + AUX. USART3 IRQ app'ten enable (.ioc değişmedi). Datasheet 115200 uyumlu. Build PASS." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-5.1  — ÖNCE MANUAL-5: DL-CC2340-B datasheet'ini DATASHEETS\\'e indir (blocking önkoşul)",
+  nextPrompt: "/ease-me execute CARD-5.2  (BLE protokolü: AT init + advertise + URC parse + GET/SET çerçeve+CRC)",
 };
 </script>
 
