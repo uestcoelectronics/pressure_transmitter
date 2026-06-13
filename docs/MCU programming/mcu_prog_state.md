@@ -45,7 +45,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-5.2 | **Tarih:** 2026-06-13 | **Commit:** 208a458 — **TÜM KOD KARTLARI TAMAM**
+- **Task ID:** DBG-SWO | **Tarih:** 2026-06-13 | **Commit:** defb6d1
+- **Özet:** SWO/ITM canlı telemetri (yeni dbg_swo.c/h): ITM port 0'a 1 Hz "P,T,I,ST" — SWV yoksa no-op. Flash/debug altyapısı kuruldu (tools/ + mcu_prog_flash_debug.md): Claude flash + canlı GDB + SWO telemetri yapabilir, tek fiziksel koşul ST-Link takılı olması. Build PASS 0/0.
+- **Önceki:** CARD-5.2 | Commit: 208a458 — **TÜM KOD KARTLARI TAMAM**
 - **Özet:** BLE konfig protokolü (yeni ble_proto.c/h): non-bloklayan AT init (advertise "PT910"), transparent CRC16 çerçeve protokolü (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO/UNLOCK, 9 param, sabit-PIN yazma koruması). Build PASS 0/0.
 - **Önceki:** CARD-5.1 | Commit: b9e7c5b
 - **Özet:** BLE taşıma katmanı (yeni ble_uart.c/h): USART3 IT RX ring (256B), TX, güç/reset/mode sırası, AUX data-ready. USART3 IRQ app'ten enable (.ioc değişmedi). Datasheet (C19273634.pdf): baud 115200 uyumlu. Build PASS 0/0. MANUAL-5 done.
@@ -80,6 +82,16 @@
 ## Current Task
 
 — (bootstrap tamamlandı, bekleme)
+
+## Oturum kapanış durumu (2026-06-13)
+
+**Tüm kod kartları + debug altyapısı TAMAM. Donanım bekleniyor.** Bir sonraki oturumda (donanım geldiğinde):
+1. Kullanıcı ST-Link'i board'a + USB'ye takar → "ST-Link takılı" der
+2. Claude: `docs\MCU programming\tools\probe_test.bat` → bağlantı teyidi
+3. Claude: `flash.bat` → firmware yükle + doğrula
+4. Claude: gdb_server + SWO telemetri ile bring-up (CARD-7.1)
+**ÖNCE:** MANUAL-2 (6 madde, özellikle TPS3851 CWD penceresi — HIGH risk) şema teyitleri.
+Tüm flash/debug detayı: `mcu_prog_flash_debug.md`.
 
 ## Next Recommended Task
 
