@@ -78,12 +78,12 @@ const D = {
   repoPath:      "C:\\PressureTransmitter",
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
   branch:        "main",
-  lastCommit:    "0fe297f",
+  lastCommit:    "b5fd7c0",
   lastUpdated:   "2026-06-13",
   implementationAllowed: true,
   validationLevel: 2,
 
-  progress: { done: 10, total: 16 },
+  progress: { done: 11, total: 16 },
 
   phases: [
     { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "complete" },
@@ -106,8 +106,8 @@ const D = {
     { id: "CARD-1.4", title: "Sıcaklık rolleri entegrasyonu",          status: "done",        blockedBy: null },
     { id: "CARD-2.1", title: "Kompanzasyon modeli v2",                 status: "done",        blockedBy: null },
     { id: "CARD-2.2", title: "Kalibrasyon sağlamlaştırma",             status: "done",        blockedBy: null },
-    { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "next",        blockedBy: null },
-    { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "not_started", blockedBy: "CARD-2.1" },
+    { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "done",        blockedBy: null },
+    { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "next",        blockedBy: null },
     { id: "CARD-4.1", title: "Loop makullük + NAMUR alarmları",        status: "done",        blockedBy: null },
     { id: "CARD-5.1", title: "BLE UART taşıma katmanı",                status: "not_started", blockedBy: "CARD-0.2" },
     { id: "CARD-5.2", title: "BLE konfigürasyon protokolü",            status: "not_started", blockedBy: "CARD-5.1" },
@@ -148,9 +148,9 @@ const D = {
   ],
 
   lastChangedFiles: [
+    "Firmware/App/Src/lcd400.c — güç sırası + üretici ST7789V init/gamma (CARD-3.1)",
     "Firmware/App/Inc+Src/xtr111_loop — NAMUR + sapma monitörü + retry (CARD-4.1)",
     "Firmware/App/Src/pressure_app.c — satürasyon, LOOP DEV, loop_service (CARD-4.1)",
-    "Firmware/App/Inc+Src/state_machine — stabilite + red + çift onay (CARD-2.2)",
   ],
 
   changelog: [
@@ -166,9 +166,10 @@ const D = {
     { date: "2026-06-12", id: "CARD-2.1",      type: "Execute",    summary: "Kompanzasyon v2 (k_t zero+span·frac) + flash format v2 (vf25/tc persistans) + v1→v2 migrasyon + menü 11 öğe. Build PASS." },
     { date: "2026-06-13", id: "CARD-2.2",      type: "Execute",    summary: "Kalibrasyon sağlamlaştırma: stabilite penceresi + yakalama reddi, span/P doğrulama, Exit çift onay, mesaj API'si. P2 kod tarafı TAMAM. Build PASS." },
     { date: "2026-06-13", id: "CARD-4.1",      type: "Execute",    summary: "NAMUR NE43 + sapma monitörü + FLT auto-retry. BUG FIX: 3.6 mA alarm-low clamp yüzünden üretilemiyordu. P4 kod tarafı TAMAM. Build PASS." },
+    { date: "2026-06-13", id: "CARD-3.1",      type: "Execute",    summary: "LCD güç sırası + datasheet reset zamanlaması + üretici ST7789V güç/gamma dizisi (eksikti). Build PASS. Görsel doğrulama MANUAL-4." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-3.1  (LCD güç sırası + reset zamanlaması)",
+  nextPrompt: "/ease-me execute CARD-3.2  (menü iyileştirme: timeout, sayfalar, alarm ekranı, backlight menü)",
 };
 </script>
 

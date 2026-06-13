@@ -35,7 +35,7 @@
 | FDC2214 sürücü | complete (kod) — CARD-1.1: sıralama+adres tespiti+ERRB/INT_B; donanım testi MANUAL-4 |
 | Sıcaklık ölçümü | complete (kod) — çift 1N4148 + TMP108 ortam/alert; donanım testi MANUAL-4; rol entegrasyonu CARD-1.4 |
 | Kalibrasyon + flash | complete (kod) — v2 format + migrasyon + kompanzasyon v2; sağlamlaştırma CARD-2.2; donanım testi yok |
-| LCD + menü | complete (kod) — donanım testi yok, iyileştirme planlı |
+| LCD + menü | LCD init complete (CARD-3.1: üretici dizisi+güç sırası); menü iyileştirme CARD-3.2; donanım testi yok |
 | 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
 | BLE | not started |
 | Watchdog | in progress — kick var, pencere teyitsiz |
@@ -44,7 +44,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-4.1 | **Tarih:** 2026-06-13 | **Commit:** 0fe297f — **P4 kod tarafı TAMAM**
+- **Task ID:** CARD-3.1 | **Tarih:** 2026-06-13 | **Commit:** b5fd7c0
+- **Özet:** LCD güç sırası + datasheet reset zamanlaması + üretici ST7789V güç-kontrol/gamma dizisi (0xB2/B7/BB/C2-C6/D0/E0/E1 — eksikti). SWRESET kaldırıldı, backlight DISPON sonrası. Build PASS 0/0. Görsel doğrulama MANUAL-4.
+- **Önceki:** CARD-4.1 | Commit: 0fe297f — P4 kod tarafı TAMAM
 - **Özet:** NAMUR NE43 seviyeleri + satürasyon; sapma monitörü (0.3 mA / 2 s, tanı bayrağı + LED 5 Hz + "LOOP DEV"); FLT auto-retry (5 s, pin seviyesi kontrollü). **BUG FIX:** alarm-low 3.6 mA clamp yüzünden üretilemiyordu. Build PASS 0/0.
 - **Önceki:** CARD-2.2 | Commit: 42586fa — P2 kod tarafı TAMAM
 - **Özet:** Kalibrasyon sağlamlaştırma: stabilite penceresi (8 örnek, p2p≤2000) + yakalama reddi; span ≥10000 kontrolü; Save öncesi cal_validate; Exit çift onay; transient mesaj API'si + ekran entegrasyonu. Build PASS 0/0. Eşikler donanımda ayarlanacak (MANUAL-4).
@@ -70,7 +72,7 @@
 
 ## Next Recommended Task
 
-- **CARD-3.1 — LCD güç sırası:** LCD_PWR_ON (PA10) sürme + reset zamanlaması; ardından CARD-3.2 menü iyileştirmeleri. Kalan kod kartları: 3.1, 3.2, 5.1, 5.2, 6.1, 6.2 (+ manuel ağırlıklı 7.x).
+- **CARD-3.2 — Menü state machine iyileştirmeleri:** 60 s timeout→NORMAL, NORMAL sayfa geçişi (P/T/mA/ΔC), alarm/fault ekranı, backlight % menü öğesi. Kalan kod kartları: 3.2, 5.1, 5.2, 6.1, 6.2 (+ manuel ağırlıklı 7.x).
 
 ## Open Risks
 
