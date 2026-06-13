@@ -13,6 +13,16 @@
 - [x] Implementation gate GEÇİLMEDİ — bu oturum planning-only, production kod değişmedi
 - [x] "NEXT PROMPT TO CLAUDE" bloğu raporda var
 
+## Kod fazı tamamlanma durumu (2026-06-13)
+
+- [x] **14 kod kartının tamamı çalıştırıldı:** CARD-0.1/0.2/0.3, 1.1/1.2/1.3/1.4, 2.1/2.2, 3.1/3.2, 4.1, 5.1/5.2, 6.1/6.2
+- [x] Her kart build PASS (seviye 2); commit'li; git geçmişinde izlenebilir
+- [x] state/memory/changelog/tracker/task_packets her kart sonunda güncellendi
+- [x] Faz durumu: P0✅ P1✅ P2✅ P3✅ P4✅ P5✅ P6✅ (kod) | P7 donanım bekliyor
+- [ ] **Donanım doğrulaması (seviye 4-5) HİÇ yapılmadı** — kart + ST-Link gerekli
+- [ ] **Blocking donanım önkoşulu MANUAL-2** (6 madde, özellikle TPS3851 CWD penceresi — HIGH risk)
+- Sonraki: `/ease-me execute CARD-7.1` (donanım gelince)
+
 ## Per-task self-check (her kart sonunda kopyala-doldur)
 
 - [ ] Pre-implementation gate geçildi
