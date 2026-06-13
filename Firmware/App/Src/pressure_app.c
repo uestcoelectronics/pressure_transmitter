@@ -9,6 +9,7 @@
 #include "tmp108.h"
 #include "xtr111_loop.h"
 #include "diag.h"
+#include "ble_uart.h"
 #include "stm32u3xx_hal.h"
 #ifdef USE_IWDG
 #include "iwdg.h"        /* CubeMX'in IWDG handle'ı */
@@ -241,6 +242,10 @@ void pressure_app_init(void)
     (void)tmp108_init();
 
     diag_init();
+
+    /* BLE taşıma katmanı (DL-CC2340-B) — güç sırası + USART3 IT RX.
+       AT protokolü ve advertise CARD-5.2'de.                               */
+    ble_uart_init();
 
     /* Loop output init (safe state'te kalır) */
     loop_init();

@@ -240,3 +240,22 @@
 **Diff budget:** 2 değişen, 2 yeni.
 **Done criteria:** temiz build; range-check + read-back + bus recovery kodda; tanı bayrağı alarm/ekran yoluna bağlı; donanım MANUAL-4.
 **Stop conditions:** driver/Core değişikliği gerekirse dur.
+
+## TASK PACKET CARD-5.1 — 2026-06-13
+
+**Goal:** DL-CC2340-B BLE taşıma katmanı: USART3 IT RX ring buffer, TX, güç/reset/mode pin yönetimi + boot sırası, AUX (data-ready) erişimi.
+**Non-goals:** AT komut protokolü / advertise / GET_MEAS / SET_PARAM (CARD-5.2); bonding/şifreleme.
+**Datasheet (DL-CC2340-B V1.0, C19273634.pdf) teyitleri:**
+- **Varsayılan baud 115200 8N1** (firmware USART3 ile UYUMLU); AT formatı `AT+<cmd> p1,p2` → `OK\r\n`/`ERROR:<n>\r\n`; async URC: `+CONNOK:Handle,Addr,Role,Num`, `+DISCONN:...`, `+SCANRET:...`
+- Pinler: DIO20=UART-TX (→MCU RX=PC10), DIO22=UART-RX (←MCU TX=PC11), **DIO24=MODE** (sleep ctrl, default HIGH=wake → BLE_MODE/PB12), **DIO21=AUX** (data-ready/busy → BLE_EVENT/PB0), **RESET** aktif-LOW (→BLE_RESET/PA15 OD), VCC (→BLE_PWR_ON/PC2 enable)
+- Reset duration <100 ms; AT↔transparent geçiş <2 ms
+**Bulgu/karar:** USART3 NVIC CubeMX'te ENABLE DEĞİL (it.c'de handler yok). **.ioc değiştirmeden:** NVIC'i ble_uart_init'te HAL_NVIC ile enable + `USART3_IRQHandler`'ı ble_uart.c'de tanımla (startup zayıf sembol override). RX: HAL_UART_Receive_IT 1-bayt + RxCpltCallback ring'e push + re-arm. TX: bloklamalı (config trafiği düşük hız).
+**Exact files inspected:** usart.c/h (115200 ✓), stm32u3xx_it.c (USART3 handler YOK), bsp_pins.h (BLE pin makroları — CARD-0.2'de eklendi), pressure_app.c (init/loop).
+**Files allowed to edit:** yeni App/Src/ble_uart.c + App/Inc/ble_uart.h; App/Src/pressure_app.c; Firmware/CMakeLists.txt (2 değişen + 2 yeni)
+**Files forbidden:** Core/**, .ioc (NVIC app'ten enable edilecek)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda nRF Connect ile modül görünürlüğü (advertise CARD-5.2'de); şimdilik UART loopback / AT "AT"→"OK" yankısı.
+**Rollback plan:** git checkout -- pressure_app.c CMakeLists.txt; yeni dosyaları sil.
+**Diff budget:** 2 değişen, 2 yeni.
+**Done criteria:** temiz build; ring buffer + IT RX + pin/güç sırası + AUX erişimi + USART3 IRQ app'ten kodda; donanım MANUAL-4/5.
+**Stop conditions:** USART3 IRQ app'ten enable edilemezse (.ioc gerekirse) dur ve MANUAL aç.

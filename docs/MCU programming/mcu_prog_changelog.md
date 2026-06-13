@@ -435,3 +435,30 @@
 **Risks Resolved:** I2C bus stuck kalıcı arıza riski → kapandı (otomatik recovery)
 
 **Next Action:** CARD-5.1 — BLE UART taşıma katmanı (MANUAL-5: DL-CC2340-B datasheet indirme önkoşulu). Kalan: 5.1/5.2 + 7.x manuel.
+
+## 2026-06-13 | Execute | Task: CARD-5.1 (+ MANUAL-5)
+
+**Task ID:** CARD-5.1
+**Type:** Execute
+**Status:** Complete (kod); donanım BLE testi MANUAL-4/5
+
+**Files Created:**
+- `App/Inc/ble_uart.h`, `App/Src/ble_uart.c` — BLE UART taşıma katmanı
+**Files Modified:**
+- `App/Src/pressure_app.c` — ble_uart_init() (init'te)
+- `Firmware/CMakeLists.txt` — ble_uart.c
+
+**Tests / Validations Run:**
+- `DATASHEETS\C19273634.pdf` analizi (MANUAL-5): baud 115200, pin eşleştirme, AT formatı, URC'ler → web_research.md
+- `cmake --build build/Debug` → PASS (0 error / 0 warning); ble_uart.c.obj + USART3_IRQHandler override çakışmasız
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda UART haberleşmesi, AT "AT"→"OK" yankısı, RX IT ring akışı, AUX pin davranışı — MANUAL-4/5
+
+**Result:** BLE taşıma katmanı hazır: USART3 IT RX ring buffer (256 B, overflow sayaçlı), bloklamalı TX; güç sırası (BLE_PWR_ON/PC2 + MODE/PB12 wake + RESET/PA15 OD darbe + 120 ms); AUX (DIO21→BLE_EVENT/PB0) data-ready erişimi. **USART3 IRQ CubeMX'te kapalıydı → .ioc DEĞİŞTİRMEDEN** app'ten HAL_NVIC ile enable + USART3_IRQHandler ble_uart.c'de tanımlandı (startup zayıf sembol override). Varsayılan baud 115200 firmware ile uyumlu (değişim gerekmedi).
+
+**Risks Introduced:** RX IT 1-bayt re-arm yüksek hızda IRQ-latency ile bayt düşürebilir (config trafiği için kabul; overflow sayacı ile izlenir)
+**Risks Resolved:** USART3 IRQ eksikliği → app-side enable ile çözüldü (.ioc gerekmedi)
+
+**Next Action:** CARD-5.2 — BLE konfigürasyon protokolü (AT init + advertise + GET_MEAS/SET_PARAM/SAVE + URC parse)

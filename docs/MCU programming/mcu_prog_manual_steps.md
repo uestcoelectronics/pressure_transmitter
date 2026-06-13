@@ -48,7 +48,7 @@
 **What Claude needs back:** Ölçüm değerleri / PASS-FAIL
 
 ## MANUAL-5 — DL-CC2340-B datasheet'ini indir
-**Status:** [ ] Waiting
+**Status:** [x] Done (2026-06-13 — kullanıcı indirdi: `DATASHEETS\C19273634.pdf`; baud 115200, pinler ve AT formatı çıkarıldı)
 **Blocking:** YES → CARD-5.1
 **Tool:** Browser
 **Added by:** BOOTSTRAP-01

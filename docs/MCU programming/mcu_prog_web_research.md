@@ -63,3 +63,25 @@ Kaynaklar:
 Kaynaklar:
 - [TPS3851 datasheet (TI SBVS300B)](https://www.ti.com/lit/ds/symlink/tps3851.pdf)
 - [TPS3851 ürün sayfası](https://www.ti.com/product/TPS3851)
+
+---
+
+## DL-CC2340-B Datasheet (CARD-5.1) — 2026-06-13
+
+**Kaynak:** `DATASHEETS\C19273634.pdf` (DreamLNK DL-CC2340-B V1.0, kullanıcı indirdi — MANUAL-5)
+
+**Teyitler:**
+- **Varsayılan UART: 115200 8N1** (firmware USART3 ile UYUMLU — baud değişimi gerekmiyor)
+- AT formatı: `AT+<cmd> p1,p2` (execute) / `AT+<cmd>=p1,p2` (set) → yanıt `OK\r\n` veya `ERROR:<errno>\r\n`
+- Async URC (bağlantı durumu UART'tan gelir, ayrı pin YOK): `+SCANRET:...`, `+CONNOK:Handle=%u,Addr=%s,Role=%u,Num=%d`, `+DISCONN:Handle=%u,Reason=%u,Num=%d`, BLE param update
+- Pin eşleştirme:
+  - DIO20 UART-TX (out) → MCU RX = PC10 (USART3_RX)
+  - DIO22 UART-RX (in)  ← MCU TX = PC11 (USART3_TX)
+  - **DIO24 MODE** (sleep ctrl): 0=Sleep, 1=Wake (default HIGH) → BLE_MODE/PB12
+  - **DIO21 AUX** (data-ready/busy): L=idle, H=veri var/buffer dolu → BLE_EVENT/PB0 (EXTI0)
+  - **RESET** aktif-LOW → BLE_RESET/PA15 (open-drain)
+  - VCC enable → BLE_PWR_ON/PC2
+- Zamanlama: Reset duration <100 ms; AT↔transparent geçiş <2 ms; serial→BLE buffer 200 B TX/RX, taşma paket kaybı
+- Transparent service UUID + write/read UUID AT ile ayarlanabilir (CARD-5.2)
+
+**Uygulama çıkarımı:** Taşıma katmanı 115200'de hazır; bağlantı durumu URC parse ile (CARD-5.2). AUX pini MCU uyandırma/data-ready; transparent veri RX IT ring'e düşer.
