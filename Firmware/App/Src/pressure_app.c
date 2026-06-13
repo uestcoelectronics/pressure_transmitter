@@ -43,6 +43,37 @@ static void start_adc_scan(void)
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)s_adc_buf, ADC_RANK_COUNT);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Watchdog beslemesi — harici TPS3851 (pencereli, WDI=PC3) + dahili IWDG      */
+/*                                                                            */
+/* TPS3851: WDI DÜŞEN-kenar tetiklemeli, PENCERELİ — kick çok erken VEYA çok  */
+/* geç olursa reset. tWD CWD pinine bağlı (şema teyidi MANUAL-2 madde 6).     */
+/* WDT_KICK_PERIOD_MS bu pencerenin İÇİNDE olmalı: tWD_MIN < P < tWD_MAX.     */
+/*                                                                            */
+/* wdt_feed_raw(): net düşen kenar + IWDG refresh; KOŞULSUZ (flash gibi       */
+/* kontrollü uzun işlemlerden de çağrılır — bkz. cal_storage.c).             */
+/* Ana döngüde besleme, güvenlik görevinin (sensör+loop tiki) canlılığına     */
+/* koşullanır (FMEDA A.16 program-akış izleme): görev WDT_HEALTH_TIMEOUT_MS   */
+/* içinde çalışmadıysa besleme durur → harici WDT+IWDG reset → güvenli durum. */
+/* -------------------------------------------------------------------------- */
+#define WDT_KICK_PERIOD_MS     100u
+#define WDT_HEALTH_TIMEOUT_MS  400u   /* güvenlik görevi bu süre çalışmazsa besleme durur */
+
+static volatile uint32_t s_loop_token = 0;   /* sensör+loop görevinin son çalışma anı */
+
+void wdt_feed_raw(void)
+{
+    /* Net düşen kenar: önce HIGH garanti, sonra kısa LOW darbe, sonra HIGH.
+       TPS3851 WDI kenar tetiklemeli; µs mertebesinde darbe yeterli.          */
+    HAL_GPIO_WritePin(WDI_PORT, WDI_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(WDI_PORT, WDI_PIN, GPIO_PIN_RESET);   /* ↓ düşen kenar  */
+    for (volatile uint32_t i = 0; i < 100u; ++i) { __NOP(); }
+    HAL_GPIO_WritePin(WDI_PORT, WDI_PIN, GPIO_PIN_SET);
+#ifdef USE_IWDG
+    HAL_IWDG_Refresh(&hiwdg);
+#endif
+}
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *h)
 {
     if (h == &hadc1) s_adc_done = true;
@@ -187,8 +218,11 @@ void pressure_app_init(void)
     buttons_init();
     sm_init();
 
-    /* Watchdog kick pin'i LOW; ilk kick'i hemen yapacağız. */
-    HAL_GPIO_WritePin(WDI_PORT, WDI_PIN, GPIO_PIN_RESET);
+    /* WDI idle = HIGH (düşen-kenar dog); ilk besleme hemen yapılır.
+       Boot'ta token taze sayılsın ki ilk pencere kaçmasın.                  */
+    HAL_GPIO_WritePin(WDI_PORT, WDI_PIN, GPIO_PIN_SET);
+    s_loop_token = HAL_GetTick();
+    wdt_feed_raw();
 
     /* LCD önce — kullanıcıya hayat işareti */
     lcd_init();
@@ -250,6 +284,7 @@ void pressure_app_loop(void)
     /* ---- Sensör + ADC döngüsü (her 100 ms) ---- */
     if ((now - t_sense) >= 100) {
         t_sense = now;
+        s_loop_token = now;   /* güvenlik görevi çalıştı (A.16 canlılık kanıtı) */
 
         /* ADC sonucu hazırsa işleyelim, yenisini başlatalım */
         if (s_adc_done) {
@@ -337,13 +372,13 @@ void pressure_app_loop(void)
         lcd_flush();
     }
 
-    /* ---- WDT kick (her 100 ms — TPS3851 timeout > 200 ms tipik) ---- */
-    if ((now - t_wdi) >= 100) {
+    /* ---- WDT besleme (her 100 ms; yalnız güvenlik görevi canlıysa) ---- */
+    if ((now - t_wdi) >= WDT_KICK_PERIOD_MS) {
         t_wdi = now;
-        HAL_GPIO_TogglePin(WDI_PORT, WDI_PIN);
-    #ifdef USE_IWDG
-        HAL_IWDG_Refresh(&hiwdg);   /* iwdg.h'ten extern hiwdg          */
-    #endif
+        if ((now - s_loop_token) <= WDT_HEALTH_TIMEOUT_MS) {
+            wdt_feed_raw();
+        }
+        /* token bayatsa: besleme yok → harici WDT + IWDG reset (güvenli durum) */
     }
 
     /* ---- Status LED (1 Hz heartbeat; fault/sapmada 5 Hz) ---- */

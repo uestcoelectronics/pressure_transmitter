@@ -199,3 +199,24 @@
 **Diff budget:** 3 değişen, 0 yeni.
 **Done criteria:** temiz build; timeout+sayfalar+fault ekranı+backlight kodda; donanım MANUAL-4.
 **Stop conditions:** storage/başka dosya gerekirse dur (backlight persistansı ayrı karta).
+
+## TASK PACKET CARD-6.1 — 2026-06-13
+
+**Goal:** TPS3851 windowed watchdog kick stratejisi: deterministik düşen-kenar besleme, güvenlik görevi canlılığına koşullu (A.16), flash erase sırasında starvation önlemi; datasheet zamanlama analizi.
+**Non-goals:** Tam FMEDA tanı seti (CARD-6.2); CWD pencere mutlak değeri (şema — MANUAL-2).
+**Web bulgusu (TPS3851 SBVS300B):** WDI düşen-kenar, pencereli (erken kick=fault). tWD CWD'ye bağlı (std 0.7ms-3.23s, ext 62ms-77s). KICK_PERIOD pencere içinde olmalı (tWD_MIN<P<tWD_MAX).
+**Current state / bulgular:** WDT slice 100 ms'de HAL_GPIO_TogglePin → düşen kenar fiilen her **200 ms** (toggle 2× periyot); koşulsuz (loop canlılığına bağlı değil — superloop hang'de durur ama sub-task hang'i yakalamaz); cal_save erase sırasında 100 ms slice çalışmaz.
+**Tasarım:**
+- wdt_feed_raw(): net düşen kenar (HIGH→kısa LOW darbe→HIGH) + IWDG refresh; KOŞULSUZ (cal_save gibi kontrollü uzun işlemlerden de çağrılır)
+- Ana döngü 100 ms WDT slice: yalnız güvenlik görevi (sensör+loop tiki) son WDT_HEALTH_TIMEOUT_MS=400 ms içinde çalıştıysa besle → A.16 program-akış izleme; aksi halde besleme dur → harici WDT+IWDG reset → güvenli durum
+- s_loop_token = now sensör 100 ms tikinin başında (periyodik scheduler kanıtı)
+- cal_save: erase öncesi+sonrası ve program döngüsünde wdt_feed_raw() (extern) — uzun flash op dog'u aç bırakamaz
+- KICK_PERIOD/HEALTH tek sabit, pencere donanım teyidine kadar 100 ms (extended timing varsayımı)
+**Exact files inspected:** pressure_app.c (WDT+sensör slice, tam), cal_storage.c (erase/program, tam), iwdg.c (Window=Reload=4095 → IWDG penceresiz, ~256 ms), datasheet (indirildi).
+**Files allowed to edit:** App/Src/pressure_app.c, App/Src/cal_storage.c (2 — bütçe içinde)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda: normal çalışmada reset yok; kick durdurarak (kod geçici) reset gözlemi; cal_save sırasında reset yok; CWD penceresine göre KICK_PERIOD doğrula.
+**Rollback plan:** git checkout -- <2 dosya>
+**Diff budget:** 2 değişen, 0 yeni.
+**Done criteria:** temiz build; deterministik kenar + health gating + flash-safe feed kodda; MANUAL-2 CWD maddesi; donanım MANUAL-4.
+**Stop conditions:** ek dosya gerekirse dur.

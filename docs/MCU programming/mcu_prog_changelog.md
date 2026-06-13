@@ -383,3 +383,29 @@
 **Risks Resolved:** Eylemsizlikte menüde kalma; tek-sayfa kısıtı; fault görünürlüğü
 
 **Next Action:** CARD-5.1 — BLE UART taşıma katmanı (MANUAL-5 datasheet indirme önkoşulu) veya CARD-6.1 — TPS3851 watchdog
+
+## 2026-06-13 | Execute | Task: CARD-6.1
+
+**Task ID:** CARD-6.1
+**Type:** Execute
+**Status:** Complete (kod); donanım reset testi + CWD pencere teyidi MANUAL-4/MANUAL-2 bekliyor
+
+**Files Created:** Yok
+**Files Modified:**
+- `App/Src/pressure_app.c` — wdt_feed_raw() (net düşen-kenar HIGH→LOW darbe→HIGH + IWDG refresh, koşulsuz); WDT slice artık güvenlik görevi canlılığına koşullu (s_loop_token sensör tikinde damgalanır, WDT_HEALTH_TIMEOUT_MS=400 ms → A.16 program-akış izleme); toggle (fiilî 200 ms kenar) yerine deterministik 100 ms kenar; init'te WDI idle=HIGH + ilk besleme
+- `App/Src/cal_storage.c` — extern wdt_feed_raw(); cal_save erase öncesi tek besleme (uzun flash bloklamasında starvation önlemi; pencereli dog'da erken-kick riskine karşı yalnız erase ÖNCESİ)
+
+**Tests / Validations Run:**
+- TPS3851 datasheet (TI SBVS300B) indirildi+analiz: WDI düşen-kenar, pencereli, tWD CWD'ye bağlı (std 0.7ms-3.23s / ext 62ms-77s) — web_research.md'ye işlendi
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda reset testi (kick durdurma), cal_save sırasında reset-yok doğrulaması, **CWD pencere değeri ile 100 ms kick uyumu** (en kritik — şema teyidi MANUAL-2 madde 6, sonra MANUAL-4) — bunlar olmadan windowed dog erken/geç kick ile reset üretebilir
+
+**Result:** Watchdog beslemesi A.16 uyumlu: yalnız periyodik güvenlik görevi (sensör+loop tiki) son 400 ms'de çalıştıysa beslenir → "canlı döngü, ölü görev" arızasını yakalar; flash erase artık dog'u aç bırakamaz; kenar üretimi deterministik (toggle'ın 2× periyot sorunu giderildi). **Açık önkoşul:** kart CWD konfigi okunup 100 ms kick'in pencereye düştüğü teyit edilmeli.
+
+**Risks Introduced:** WDT_KICK_PERIOD_MS=100 ms, CWD penceresi teyit edilene dek varsayım — pencere bu değeri içermiyorsa donanımda sürekli reset (MANUAL-2 madde 6 ile çözülür); wdt_feed_raw'daki NOP busy-loop (~µs) kabul edilebilir
+**Risks Resolved:** cal_save flash erase watchdog starvation (MEDIUM) → kapandı; toggle 2× periyot belirsizliği → kapandı
+
+**Next Action:** CARD-6.2 — temel tanılar (diag modülü: ADC range-check, GPIO read-back, I2C bus recovery) veya CARD-5.1 BLE (MANUAL-5 önkoşul)

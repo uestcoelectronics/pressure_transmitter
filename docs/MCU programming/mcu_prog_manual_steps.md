@@ -23,7 +23,8 @@
 3. TMP108 ADD0 bağlantısı (I2C adresi)
 4. XTR111 R_SET direnci değeri (transfer fonksiyonu doğrulama)
 5. X400/X401 kristal designator'ları: hangisi 24 MHz HSE, hangisi 32.768 kHz LSE (BOM ↔ pin haritası çelişkisi)
-**What Claude needs back:** 5 maddenin değerleri (metin olarak yeterli)
+6. **TPS3851 (U701) CWD pini** (CARD-6.1): kapasitör değeri / VDD pullup direnci / NC — ve standart mı extended timing mi. Bu, watchdog penceresini (tWD_MIN..tWD_MAX) belirler. Firmware kick periyodu (100 ms) bu pencerenin **içinde** olmalı; aksi halde (özellikle çok hızlı kick) pencereli watchdog reset üretir.
+**What Claude needs back:** 6 maddenin değerleri (metin olarak yeterli)
 
 ## MANUAL-3 — CubeMX .ioc değişiklikleri (gerektiğinde)
 **Status:** [x] Done (2026-06-12 — kullanıcı regenerate etti: 4 kanal IN1/IN2/IN11/IN12, rank kanal bug'ı düzeldi; Claude diff kontrolü PASS, USER CODE korunmuş)

@@ -2,6 +2,11 @@
 #include "stm32u3xx_hal.h"
 #include <string.h>
 
+/* Watchdog beslemesi (pressure_app.c'de tanımlı) — flash erase/program ana
+   döngüyü bloklar; uzun işlem sırasında harici WDT+IWDG starvation olmasın.
+   Katman bağımsızlığı için header include yerine extern bildirimi.          */
+extern void wdt_feed_raw(void);
+
 /* -------------------------------------------------------------------------- */
 /* Flash sayfası seçimi                                                        */
 /* -------------------------------------------------------------------------- */
@@ -133,6 +138,10 @@ bool cal_save(void)
     /* Bank seçimi STM32U3'te tek bank organizasyonunda kullanılmıyor;
        gerekirse er.Banks = FLASH_BANK_1 ekleyin. */
 
+    /* Erase öncesi tek besleme yeterli: timer sıfırlanır, kısa erase+program
+       sonrası ana döngü ~100 ms'de normal besler. Pencereli dog'da erase
+       SONRASI ikinci besleme erken-kick (erase<tWD_MIN) riski taşır → yok.  */
+    wdt_feed_raw();
     uint32_t page_err = 0;
     if (HAL_FLASHEx_Erase(&er, &page_err) != HAL_OK) {
         HAL_FLASH_Lock();
