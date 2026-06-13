@@ -38,14 +38,16 @@
 | Kalibrasyon + flash | complete (kod) — v2 format + migrasyon + kompanzasyon v2; sağlamlaştırma CARD-2.2; donanım testi yok |
 | LCD + menü | complete (kod) — LCD init (3.1) + menü timeout/sayfa/alarm/backlight (3.2); donanım testi yok |
 | 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
-| BLE | in progress — taşıma katmanı complete (CARD-5.1: UART ring+güç+pin); protokol CARD-5.2; donanım testi yok |
+| BLE | complete (kod) — taşıma (5.1) + AT init/advertise + CRC16 çerçeve protokol (5.2); donanım/telefon testi yok |
 | Watchdog | complete (kod) — CARD-6.1: A.16 koşullu besleme + flash-safe + deterministik kenar; CWD pencere teyidi (MANUAL-2 m.6) açık |
 | Tanılar (diag) | complete (kod) — CARD-6.2: ADC rail-stuck + GPIO read-back + I2C recovery; donanım testi yok |
 | Donanım doğrulama | not started |
 
 ## Last Completed Task
 
-- **Task ID:** CARD-5.1 | **Tarih:** 2026-06-13 | **Commit:** b9e7c5b
+- **Task ID:** CARD-5.2 | **Tarih:** 2026-06-13 | **Commit:** 208a458 — **TÜM KOD KARTLARI TAMAM**
+- **Özet:** BLE konfig protokolü (yeni ble_proto.c/h): non-bloklayan AT init (advertise "PT910"), transparent CRC16 çerçeve protokolü (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO/UNLOCK, 9 param, sabit-PIN yazma koruması). Build PASS 0/0.
+- **Önceki:** CARD-5.1 | Commit: b9e7c5b
 - **Özet:** BLE taşıma katmanı (yeni ble_uart.c/h): USART3 IT RX ring (256B), TX, güç/reset/mode sırası, AUX data-ready. USART3 IRQ app'ten enable (.ioc değişmedi). Datasheet (C19273634.pdf): baud 115200 uyumlu. Build PASS 0/0. MANUAL-5 done.
 - **Önceki:** CARD-6.2 | Commit: 02d0c3e — P6 kod tarafı TAMAM
 - **Özet:** Diag modülü (yeni diag.c/h): A.13 ADC rail-stuck (VCC/I_loop, divider-bağımsız), A.7 GPIO read-back (LOOP_EN kritik→safe state), I2C 9-clock bus recovery (iki cihaz takılınca + reinit). Ekranda "DIAG CHK". Build PASS 0/0.
@@ -81,7 +83,8 @@
 
 ## Next Recommended Task
 
-- **CARD-5.2 — BLE konfigürasyon protokolü:** AT init dizisi (cihaz adı, advertise başlat), URC parse (+CONNOK/+DISCONN), çerçeve protokolü (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO, CRC16). Son kod kartı; sonrası yalnız donanım 7.x (kart + MANUAL-2/4 gerekli).
+- **TÜM KOD KARTLARI TAMAMLANDI** (CARD-0.1 … 6.2, 5.1, 5.2 — 14 kart, hepsi build PASS seviye 2). Kalan: **CARD-7.1/7.2 donanım bring-up + soak** — kart + ST-Link + MANUAL-2 (şema teyitleri) + MANUAL-4 gerektirir. Donanım gelince `/ease-me execute CARD-7.1`.
+- **Donanım öncesi blocking:** MANUAL-2 (6 madde: diyot bias, FDC ADDR, TMP108 ADD0, XTR111 R_SET, kristaller, **TPS3851 CWD penceresi**) — özellikle CWD watchdog penceresi (HIGH risk).
 
 ## Open Risks
 

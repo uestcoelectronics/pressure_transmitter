@@ -31,8 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P0-P4+P6 + CARD-5.1 kod TAMAM | **Son:** CARD-5.1 BLE taşıma (b9e7c5b)
-- **Sıradaki:** CARD-5.2 BLE protokolü (AT init, advertise, URC parse, GET/SET çerçeve+CRC). Son kod kartı; sonrası 7.x donanım manuel
+- **TÜM KOD KARTLARI TAMAM** (P0-P6 + BLE). **Son:** CARD-5.2 BLE protokol (208a458)
+- **Sıradaki:** CARD-7.1/7.2 donanım bring-up — kart + ST-Link + MANUAL-2/4 gerekli (donanımsız ilerlemez)
+- BLE protokol: ble_proto.c — AT init SM + transparent CRC16 çerçeve (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO/UNLOCK); cihaz adı "PT910"; UNLOCK PIN 0x00001357 (ble_proto.c)
 - diag modülü: ADC rail-stuck, GPIO read-back (LOOP_EN kritik→safe state), I2C 9-clock recovery; ekranda "DIAG CHK"
 - UI: 60 s timeout, NORMAL 3 sayfa (sm_get_normal_page), fault alarm ekranı, backlight runtime (%60 boot, kalıcı değil)
 - Loop: NAMUR sabitleri xtr111_loop.h'ta; komut penceresi 3.6..21.0; sapma 0.3 mA/2 s; FLT retry 5 s
