@@ -259,3 +259,21 @@
 **Diff budget:** 2 değişen, 2 yeni.
 **Done criteria:** temiz build; ring buffer + IT RX + pin/güç sırası + AUX erişimi + USART3 IRQ app'ten kodda; donanım MANUAL-4/5.
 **Stop conditions:** USART3 IRQ app'ten enable edilemezse (.ioc gerekirse) dur ve MANUAL aç.
+
+## TASK PACKET CARD-5.2 — 2026-06-13
+
+**Goal:** BLE konfigürasyon protokolü: non-bloklayan AT init (advertise), transparent kanalda CRC16'lı çerçeve protokolü (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO/UNLOCK).
+**Non-goals:** OTA, bonding/şifreleme; central/scan rolü.
+**Datasheet AT formatları (teyitli):** AT+ADVNAME=<local>,<manuf>; AT+ADVSTA=<0|1>; AT+ENTM (gattRole 0=peripheral server); AT+RESET→+PWRUP; AT+SAVE. URC'ler (+CONNOK/+DISCONN) AT modunda; transparent modda veri akışı + AUX(DIO21) data-ready.
+**Mimari karar:** İki faz — (1) AT init: line-based, her komuta "OK" bekle (timeout/retry, başarısızsa degraded→RUN); (2) RUN: pure transparent, byte-feed çerçeve parser. Transparent modda URC beklenmiyor; bağlantı durumu implicit (gelen geçerli çerçeve = aktivite). Non-bloklayan: ble_proto_service(now,p,t,ma,status) ana döngüden çağrılır, 4-20 loop durmaz.
+**Çerçeve:** SOF=0xAA | LEN | CMD | PAYLOAD[LEN] | CRC16-CCITT(hi,lo) over [LEN,CMD,PAYLOAD]. Yanıt: SOF,LEN,CMD echo, payload[0]=status, veri. float=4B LE.
+**Komutlar:** 0x01 GET_MEAS(P,T,mA,stat); 0x02 GET_PARAM<pid>; 0x03 SET_PARAM<pid><f32> (unlock'lu); 0x04 SAVE (unlock'lu); 0x05 INFO; 0x06 UNLOCK<u32 PIN>. PID: p_min/p_max/damping/kt_zero/kt_span/vf25/tc/cap_zero/cap_span. Yazma koruması: sabit PIN (D4/Q5), SET/SAVE kilitliyse ERR.
+**Exact files inspected:** ble_uart.h (API), cal_storage.h (param alanları+cal_save), temp_diode.h (vf25/tc sync), pressure_app.c (loop+status), datasheet AT bölümü.
+**Files allowed to edit:** yeni App/Src/ble_proto.c + App/Inc/ble_proto.h; App/Src/pressure_app.c; Firmware/CMakeLists.txt (1 değişen prod + 2 yeni)
+**Files forbidden:** Core/**, .ioc, ble_uart.c (taşıma katmanı sabit)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanım: telefon (nRF Connect) ile "PT910" advertise gör; transparent karakteristiğe GET_MEAS çerçevesi yaz → P/T/mA yanıtı; UNLOCK+SET_PARAM+SAVE → reboot sonrası kalıcı.
+**Rollback plan:** git checkout -- pressure_app.c CMakeLists.txt; yeni dosyaları sil.
+**Diff budget:** 1 değişen prod, 2 yeni.
+**Done criteria:** temiz build; AT init SM + frame parser + komutlar + CRC + unlock kodda; donanım MANUAL-5.
+**Stop conditions:** ble_uart API yetmezse dur.

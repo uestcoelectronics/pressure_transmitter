@@ -462,3 +462,30 @@
 **Risks Resolved:** USART3 IRQ eksikliği → app-side enable ile çözüldü (.ioc gerekmedi)
 
 **Next Action:** CARD-5.2 — BLE konfigürasyon protokolü (AT init + advertise + GET_MEAS/SET_PARAM/SAVE + URC parse)
+
+## 2026-06-13 | Execute | Task: CARD-5.2
+
+**Task ID:** CARD-5.2
+**Type:** Execute
+**Status:** Complete (kod) — P5 + TÜM KOD KARTLARI TAMAMLANDI
+
+**Files Created:**
+- `App/Inc/ble_proto.h`, `App/Src/ble_proto.c` — BLE konfig protokolü
+**Files Modified:**
+- `App/Src/pressure_app.c` — ble_proto_init() + ana döngüde ble_proto_service() (status byte bitfield ile)
+- `Firmware/CMakeLists.txt` — ble_proto.c
+
+**Tests / Validations Run:**
+- Datasheet AT formatları teyit (AT+ADVNAME=<local>,<manuf>; AT+ADVSTA=1; AT+ENTM; +PWRUP; +CONNOK/+DISCONN)
+- `cmake --build build/Debug` → PASS (0 error / 0 warning); ble_proto.c.obj + elf
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda telefon (nRF Connect) ile advertise görünürlüğü, transparent çerçeve uçtan uca (GET_MEAS/SET_PARAM/SAVE), UNLOCK PIN akışı, AT init OK alımı — MANUAL-5 (modül + telefon)
+
+**Result:** BLE konfig protokolü hazır (non-bloklayan): (1) AT init SM — RESET→ADVNAME(PT910)→ADVSTA=1→ENTM, her komuta OK bekleme + timeout/retry + degraded fallback (modül önceden konfigli olabilir); (2) transparent CRC16-CCITT çerçeve protokolü [0xAA|LEN|CMD|PAYLOAD|CRC16]: GET_MEAS (P/T/mA/status), GET_PARAM, SET_PARAM (unlock'lu), SAVE (unlock'lu→cal_save), INFO, UNLOCK (sabit PIN). 9 cal parametresi okunur/yazılır; vf25/tc yazımı temp_diode'a senkronlanır. Yazma koruması: sabit PIN UNLOCK. 4-20 mA güvenlik döngüsü BLE bring-up sırasında durmaz.
+
+**Risks Introduced:** AT init retry komutu yeniden göndermiyor (degraded fallback'e güvenir — modül pre-konfigli senaryoda sorun değil); UNLOCK PIN sabit (v1 — BLE şifreleme/bonding yok, fiziksel erişim varsayımı)
+**Risks Resolved:** BLE konfig eksikliği (gereksinim) → kapandı (kod düzeyinde)
+
+**Next Action:** TÜM KOD KARTLARI TAMAM. Kalan: CARD-7.1/7.2 donanım bring-up + soak (kart + ST-Link + MANUAL-2/4 gerekli). Donanım gelince /ease-me execute CARD-7.1.

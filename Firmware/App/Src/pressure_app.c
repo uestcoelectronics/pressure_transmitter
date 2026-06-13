@@ -10,6 +10,7 @@
 #include "xtr111_loop.h"
 #include "diag.h"
 #include "ble_uart.h"
+#include "ble_proto.h"
 #include "stm32u3xx_hal.h"
 #ifdef USE_IWDG
 #include "iwdg.h"        /* CubeMX'in IWDG handle'ı */
@@ -243,9 +244,9 @@ void pressure_app_init(void)
 
     diag_init();
 
-    /* BLE taşıma katmanı (DL-CC2340-B) — güç sırası + USART3 IT RX.
-       AT protokolü ve advertise CARD-5.2'de.                               */
+    /* BLE taşıma katmanı (DL-CC2340-B) + konfig protokolü                    */
     ble_uart_init();
+    ble_proto_init();
 
     /* Loop output init (safe state'te kalır) */
     loop_init();
@@ -423,6 +424,18 @@ void pressure_app_loop(void)
         HAL_GPIO_WritePin(LED_PORT, LED_PIN,
                           led_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }
+
+    /* ---- BLE konfig protokolü (non-bloklayan; AT init + transparent) ---- */
+    uint8_t bstat = (uint8_t)(
+        (loop_is_in_fault()          ? 0x01u : 0u) |
+        (fdc2214_has_error()         ? 0x02u : 0u) |
+        (loop_has_deviation()        ? 0x04u : 0u) |
+        (!temp_diode_is_consistent() ? 0x08u : 0u) |
+        (tmp108_overtemp()           ? 0x10u : 0u) |
+        (diag_any()                  ? 0x20u : 0u) |
+        (loop_is_enabled()           ? 0x80u : 0u));
+    ble_proto_service(now, s_disp_p, temp_diode_get_celsius(),
+                      loop_get_measured_ma(), bstat);
 }
 
 /* EXTI Falling callback main.c (USER CODE BEGIN 4) içinde tanımlandı. */
