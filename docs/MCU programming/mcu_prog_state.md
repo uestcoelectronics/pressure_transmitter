@@ -40,12 +40,14 @@
 | 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
 | BLE | not started |
 | Watchdog | complete (kod) — CARD-6.1: A.16 koşullu besleme + flash-safe + deterministik kenar; CWD pencere teyidi (MANUAL-2 m.6) açık |
-| Tanılar (diag) | not started |
+| Tanılar (diag) | complete (kod) — CARD-6.2: ADC rail-stuck + GPIO read-back + I2C recovery; donanım testi yok |
 | Donanım doğrulama | not started |
 
 ## Last Completed Task
 
-- **Task ID:** CARD-6.1 | **Tarih:** 2026-06-13 | **Commit:** f63ecaf
+- **Task ID:** CARD-6.2 | **Tarih:** 2026-06-13 | **Commit:** 02d0c3e — **P6 kod tarafı TAMAM**
+- **Özet:** Diag modülü (yeni diag.c/h): A.13 ADC rail-stuck (VCC/I_loop, divider-bağımsız), A.7 GPIO read-back (LOOP_EN kritik→safe state), I2C 9-clock bus recovery (iki cihaz takılınca + reinit). Ekranda "DIAG CHK". Build PASS 0/0.
+- **Önceki:** CARD-6.1 | Commit: f63ecaf
 - **Özet:** TPS3851 windowed watchdog: deterministik düşen-kenar besleme (wdt_feed_raw), güvenlik görevi canlılığına koşullu (A.16, 400 ms health), cal_save erase öncesi besleme. Datasheet analizi (web). Build PASS 0/0. **Açık önkoşul:** CWD pencere değeri (MANUAL-2 m.6) → 100 ms kick uyumu doğrulanmalı.
 - **Önceki:** CARD-3.2 | Commit: 0f43ab1 — P3 kod tarafı TAMAM
 - **Özet:** Menü iyileştirmeleri: 60 s eylemsizlik timeout (discard→NORMAL); NORMAL'de 3 sayfa (MAIN/SENSOR/LOOP, UP/DN); loop fault alarm ekranı; backlight % menü öğesi (runtime, kalıcı değil). Build PASS 0/0.
@@ -77,7 +79,7 @@
 
 ## Next Recommended Task
 
-- **CARD-6.2 — Temel tanılar (diag modülü):** ADC range-check (TMP/VCC_FB/I_FB), GPIO read-back (LOOP_EN/LCD_PWR/BLE_PWR/CLK_EN), I2C hata sayaçları + bus recovery → tanı bayrağı/alarm. Donanımsız ilerler. Sonra: CARD-5.1/5.2 BLE (MANUAL-5 önkoşul) + 7.x manuel.
+- **CARD-5.1 — BLE UART taşıma katmanı.** **ÖNKOŞUL: MANUAL-5** (DL-CC2340-B datasheet'i `DATASHEETS\`'e indir; pin işlevleri + varsayılan baud teyidi). Datasheet gelmeden başlanamaz — bu blocking. Alternatif: kalan tek kod işi BLE; donanım kartları (7.x) için kart + MANUAL-2/4 gerekli.
 
 ## Open Risks
 

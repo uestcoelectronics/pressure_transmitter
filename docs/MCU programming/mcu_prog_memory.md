@@ -31,8 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P0-P4 + CARD-6.1 kod TAMAM | **Son:** CARD-6.1 watchdog (f63ecaf)
-- **Sıradaki:** CARD-6.2 tanılar (diag: ADC range/GPIO read-back/I2C recovery, donanımsız) → CARD-5.1/5.2 BLE (MANUAL-5 önkoşul) + 7.x manuel
+- **Faz:** P0-P4+P6 kod TAMAM | **Son:** CARD-6.2 diag (02d0c3e)
+- **Sıradaki:** CARD-5.1 BLE UART — **MANUAL-5 (datasheet indirme) BLOCKING önkoşul**. Sonra 5.2 + 7.x donanım manuel
+- diag modülü: ADC rail-stuck, GPIO read-back (LOOP_EN kritik→safe state), I2C 9-clock recovery; ekranda "DIAG CHK"
 - UI: 60 s timeout, NORMAL 3 sayfa (sm_get_normal_page), fault alarm ekranı, backlight runtime (%60 boot, kalıcı değil)
 - Loop: NAMUR sabitleri xtr111_loop.h'ta; komut penceresi 3.6..21.0; sapma 0.3 mA/2 s; FLT retry 5 s
 - Kalibrasyon eşikleri: CAL_STAB_P2P_MAX=2000, CAL_MIN_SPAN_COUNTS=10000 (state_machine.c, donanımda ayarlanacak)
