@@ -48,8 +48,14 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 ## Önemli Varsayımlar (onaylanmamış)
 - NAMUR NE43 alarm seviyeleri (D3); BLE AT+transparent+CRC çerçeve (D4); menü timeout 60 s (D5); 1N4148 V_f25≈600 mV @ ~1 mA / TC≈−2 mV/°C (D6 — bias direnci MANUAL-2); TMP108 histerezis 60/55 °C, alarmda ölçüm sürer (D8)
 
+## Flash/Debug (kurulu — bkz. mcu_prog_flash_debug.md)
+- Flash: Claude yapar — STM32_Programmer_CLI v2.21 (`mode=UR -d ELF --verify -rst`)
+- Canlı debug: Claude yapar — ST-LINK_gdbserver 7.13 (`AppData\Local\stm32cube\bundles\stlink-gdbserver\7.13.0+st.3\bin`) + arm-none-eabi-gdb (port 61234)
+- Post-mortem: Programmer CLI `-r32 ADDR` (gdbserver'sız RAM/flash okuma)
+- Tek fiziksel önkoşul: ST-Link board'a+USB'ye takılı (kullanıcı); ölçüm/buton/LCD kullanıcı
+
 ## Manuel Araç Sınırları
-- Donanım flash/test: ST-Link + kart + multimetre (kullanıcı)
+- Donanım fiziksel: ST-Link takma, multimetre, basınç referansı (kullanıcı)
 - .ioc değişikliği: STM32CubeMX regenerate (kullanıcı)
 - Şema PDF (4-20.PDF) görüntü tabanlı — Claude render edemiyor (pdftoppm yok); şema teyitleri kullanıcıdan
 - BLE testi: telefon + nRF Connect (kullanıcı)

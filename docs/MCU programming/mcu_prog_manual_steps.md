@@ -8,9 +8,10 @@
 **Tool:** ST-Link + kart + 24 V kaynak + 250 Ω yük + multimetre
 **Added by:** BOOTSTRAP-01
 **Instructions:**
-1. Kartı ST-Link ile bağla, 24 V'u loop konektörüne **yavaş** yükselt (INTEGRATION.md uyarısı)
-2. 250 Ω yük + multimetre (mA modu) seri bağla
-**What Claude needs back:** "Düzenek hazır" onayı
+1. **ST-Link'i board'a (SWD: SWDIO/PA13, SWCLK/PA14, GND, 3V3) ve bilgisayara (USB) tak** — flash + debug bunun üzerinden. Claude'a "ST-Link takılı" de; Claude `tools\probe_test.bat` ile teyit eder, sonra `flash.bat` ile yükler.
+2. Kartı 24 V'a bağla, loop konektörüne **yavaş** yükselt (INTEGRATION.md uyarısı)
+3. 250 Ω yük + multimetre (mA modu) seri bağla
+**What Claude needs back:** "ST-Link takılı" + "düzenek hazır" onayı (flash/debug Claude'da — bkz. mcu_prog_flash_debug.md)
 
 ## MANUAL-2 — Şema teyitleri (4-20.PDF — Claude PDF görüntüsünü render edemiyor)
 **Status:** [ ] Waiting

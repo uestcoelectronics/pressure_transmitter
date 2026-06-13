@@ -1,0 +1,36 @@
+# gdb_cmds_example.txt — arm-none-eabi-gdb batch komut örneği
+# Kullanım (ST-LINK_gdbserver veya OpenOCD arka planda çalışırken):
+#   arm-none-eabi-gdb -q -x gdb_cmds_example.txt build/Debug/PressureTransmitter.elf
+#
+# Claude bu dosyayı duruma göre üretir; bu yalnız örnek.
+
+# GDB server'a bağlan (ST-LINK_gdbserver default portu 61234, OpenOCD 3333)
+target extended-remote localhost:61234
+
+# Reset + ilk durdurma
+monitor reset halt
+
+# Kalibrasyon yapısını (RAM) oku — sembol adıyla
+print s_cal
+print/x s_cal
+
+# Bir breakpoint koy: cal_save'e girince dur
+break cal_save
+continue
+# (cal_save'e ulaşınca)
+backtrace
+info locals
+print rec
+
+# Loop akım komutunu izle
+print s_cmd_ma
+print loop_get_measured_ma()
+
+# Tek bir global'in adresini öğren + ham bellek oku
+print &s_adc_buf
+x/4hx &s_adc_buf
+
+# Devam / bitir
+continue
+detach
+quit

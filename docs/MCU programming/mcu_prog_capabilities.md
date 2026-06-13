@@ -15,9 +15,16 @@
 - BLE uçtan uca test — telefon (nRF Connect)
 - git init kararı, commit/push izinleri
 
+## Flash & Debug (2026-06-13 tespit — bkz. mcu_prog_flash_debug.md)
+- **Flash:** EVET — STM32_Programmer_CLI v2.21 kurulu; `mode=UR -d ELF --verify -rst` ile headless yükleme + doğrulama
+- **Canlı kaynak debug:** EVET — ST-LINK_gdbserver 7.13 (`AppData\Local\stm32cube\bundles\...`) + arm-none-eabi-gdb kurulu; breakpoint/step/`print var`/backtrace scriptlenebilir
+- **Post-mortem bellek:** EVET — Programmer CLI `-r32 ADDR` ile RAM/flash okuma (gdbserver'sız)
+- **SWO/ITM telemetri:** mümkün (PB3=SWO kartta); printf→ITM eklenirse Claude canlı okur
+- **Tek fiziksel gereksinim:** ST-Link board'a+USB'ye TAKILI olmalı (kullanıcı)
+
 ## Erişilemeyen araçlar
 - `pdftoppm` yok → PDF sayfalarını görüntü olarak okuyamıyorum (şema/çizim içerikleri). Metin çıkarımı çalışıyor.
-- Donanım debug (GDB/OpenOCD oturumu) — kart bağlı olsa bile etkileşimli debug bu oturumlarda planlanmadı
+- Fiziksel dünya: ST-Link takma, 24V/250Ω/multimetre, basınç referansı, buton, LCD gözlemi — kullanıcı yapar
 
 ## Bilinen eksik yetenekler → roadmap etkisi
 - Şema okuyamama → MANUAL-2 teyitleri kart kapılarına bağlandı
