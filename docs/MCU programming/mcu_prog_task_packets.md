@@ -163,3 +163,20 @@
 **Diff budget:** 3 değişen, 0 yeni.
 **Done criteria:** temiz build; NAMUR seviyeleri + sapma monitörü + retry kodda; donanım MANUAL-4.
 **Stop conditions:** başka dosya gerekirse dur.
+
+## TASK PACKET CARD-3.1 — 2026-06-13
+
+**Goal:** LCD güç sırası (LCD_PWR_ON/PA10) + datasheet reset zamanlaması + üretici ST7789V init dizisinin (güç kontrol + gamma) eklenmesi.
+**Non-goals:** Menü/UI mantığı (CARD-3.2); font/render değişikliği.
+**Current state / bulgular:** lcd_init PA10'u sürüyor ✓ ama güç oturma süresi sabit-yorumsuz (20 ms). Reset 20/20/150 ms. **Init dizisi eksik:** yalnız SWRESET/SLPOUT/MADCTL/COLMOD/INVON/DISPON var; üretici dizisindeki 0xB2 (porch), 0xB7 (gate), 0xBB (VCOM), 0xC2/C3/C4/C6 (VRH/VDV/FRCTRL), 0xD0 (power ctrl), 0xE0/E1 (gamma ±) YOK → default güç/gamma ile sönük/yanlış kontrast riski.
+**Datasheet (DS154S10Z0TG01.pdf) üretici referans dizisi:** RES low 100ms→high 100ms; 0x11+120ms; 0x36=00; 0x3A=05; 0xB2 0C 0C 00 33 33; 0xB7 35; 0xBB 32; 0xC2 01; 0xC3 15; 0xC4 20; 0xC6 0F; 0xD0 A4 A1; 0xE0/E1 14'er bayt gamma; 0x21 INVON; 0x29 DISPON. BLK aktif-HIGH dijital backlight (PWM ile dimming geçerli).
+**Tasarım:** Adlandırılmış zamanlama sabitleri; PA10 power settle 50 ms; HW reset (low 10 ms, high→120 ms bekleme, SLPOUT öncesi); SWRESET kaldırılıyor (HW reset yeterli, üretici de kullanmıyor); tam register dizisi cmd+data helper'la; ekran temizliği DISPON öncesi (garbage flash önlemi — backlight DISPON sonrası açılıyor, mevcut iyi UX korunuyor).
+**Exact files inspected:** lcd400.c (tam), lcd400.h (tam), datasheet init dizisi (çıkarıldı), gpio.c (PA10/PC8 konfig — önceki kart).
+**Files allowed to edit:** App/Src/lcd400.c (1 dosya)
+**Files forbidden:** lcd400.h (imza değişmiyor), Core/**, .ioc
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda 10× soğuk açılış → ekran her seferinde ilk denemede içerik gösteriyor; kontrast/renk düzgün (gamma sonrası); backlight açılışta garbage göstermiyor.
+**Rollback plan:** git checkout -- Firmware/App/Src/lcd400.c
+**Diff budget:** 1 değişen, 0 yeni.
+**Done criteria:** temiz build; güç sırası + reset zamanlaması sabitleri + tam üretici init dizisi kodda; donanım MANUAL-4.
+**Stop conditions:** lcd400.h veya başka dosya gerekirse dur.

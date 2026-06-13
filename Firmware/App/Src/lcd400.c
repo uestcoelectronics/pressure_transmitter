@@ -21,7 +21,6 @@
 /* -------------------------------------------------------------------------- */
 /* ST7789V komutları (yalnız kullandıklarımız)                                 */
 /* -------------------------------------------------------------------------- */
-#define ST_SWRESET   0x01
 #define ST_SLPOUT    0x11
 #define ST_INVON     0x21    /* 240x240'ta panel polariteleri için tipik gerekli */
 #define ST_DISPON    0x29
@@ -30,6 +29,16 @@
 #define ST_RAMWR     0x2C
 #define ST_MADCTL    0x36
 #define ST_COLMOD    0x3A
+
+/* -------------------------------------------------------------------------- */
+/* Güç / reset zamanlama sabitleri                                             */
+/*   LCD_PWR_ON (PA10) → panel beslemesi otursun, sonra HW reset.             */
+/*   ST7789V: RESX low ≥ 10 µs; reset sonrası komut öncesi ≥ 120 ms.          */
+/* -------------------------------------------------------------------------- */
+#define LCD_PWR_SETTLE_MS   50u
+#define LCD_RST_LOW_MS      10u
+#define LCD_RST_WAIT_MS     120u
+#define LCD_SLPOUT_MS       120u
 
 /* -------------------------------------------------------------------------- */
 /* Render parametreleri                                                        */
@@ -75,6 +84,13 @@ static void lcd_data8(uint8_t v)
     lcd_dc(true); lcd_cs(true);
     HAL_SPI_Transmit(&hspi2, &v, 1, 50);
     lcd_cs(false);
+}
+
+/* Komut + ardından n veri baytı (init dizisini okunabilir tutmak için).      */
+static void lcd_cmd_data(uint8_t cmd, const uint8_t *data, uint8_t n)
+{
+    lcd_cmd(cmd);
+    for (uint8_t i = 0; i < n; ++i) lcd_data8(data[i]);
 }
 
 static void lcd_data_buf(const uint8_t *buf, uint32_t n)
@@ -156,36 +172,63 @@ static void flush_text_row(uint8_t row)
 /* -------------------------------------------------------------------------- */
 /* Public API                                                                  */
 /* -------------------------------------------------------------------------- */
+/* Üretici (BDS154S10Z0TG01 datasheet) referans güç-kontrol + gamma dizisi.
+   Bunlar olmadan ST7789V reset-default VCOM/VRH/gamma ile sönük/yanlış
+   kontrast verebilir.                                                        */
+static const uint8_t INIT_B2[]  = { 0x0C, 0x0C, 0x00, 0x33, 0x33 }; /* PORCTRL */
+static const uint8_t INIT_B7[]  = { 0x35 };                         /* GCTRL   */
+static const uint8_t INIT_BB[]  = { 0x32 };                         /* VCOMS   */
+static const uint8_t INIT_C2[]  = { 0x01 };                         /* VDVVRHEN*/
+static const uint8_t INIT_C3[]  = { 0x15 };                         /* VRHS    */
+static const uint8_t INIT_C4[]  = { 0x20 };                         /* VDVSET  */
+static const uint8_t INIT_C6[]  = { 0x0F };                         /* FRCTRL2 60Hz */
+static const uint8_t INIT_D0[]  = { 0xA4, 0xA1 };                   /* PWCTRL1 */
+static const uint8_t INIT_E0[]  = { 0xD0,0x08,0x0E,0x09,0x09,0x05,0x31,
+                                    0x33,0x48,0x17,0x14,0x15,0x31,0x34 }; /* PVGAMCTRL */
+static const uint8_t INIT_E1[]  = { 0xD0,0x08,0x0E,0x09,0x09,0x15,0x31,
+                                    0x33,0x48,0x17,0x14,0x15,0x31,0x34 }; /* NVGAMCTRL */
+
 bool lcd_init(void)
 {
-    /* Backlight CS2'yi pasif tut */
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);  /* CS2 = HIGH (font chip off) */
+    /* Font chip CS2'yi pasif tut */
+    HAL_GPIO_WritePin(LCD_CS2_PORT, LCD_CS2_PIN, GPIO_PIN_SET);
 
-    /* Power on */
+    /* 1) Panel beslemesini aç ve oturmasını bekle (LCD_PWR_ON = PA10)        */
     HAL_GPIO_WritePin(LCD_PWR_PORT, LCD_PWR_PIN, GPIO_PIN_SET);
-    HAL_Delay(20);
+    HAL_Delay(LCD_PWR_SETTLE_MS);
 
-    /* Reset */
-    HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_RESET);
-    HAL_Delay(20);
+    /* 2) Donanım reset: RES low pulse → high, sonra ≥120 ms komut-öncesi bekle */
     HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_SET);
-    HAL_Delay(150);
+    HAL_Delay(1);
+    HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_RESET);
+    HAL_Delay(LCD_RST_LOW_MS);
+    HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_SET);
+    HAL_Delay(LCD_RST_WAIT_MS);
 
-    /* Software reset + sleep-out (ST7789V) */
-    lcd_cmd(ST_SWRESET); HAL_Delay(150);
-    lcd_cmd(ST_SLPOUT);  HAL_Delay(120);
+    /* 3) Sleep-out (HW reset yeterli; ayrı SWRESET gerekmez)                 */
+    lcd_cmd(ST_SLPOUT);  HAL_Delay(LCD_SLPOUT_MS);
 
-    /* MADCTL: row/col order, RGB. 0x00 = default top-down, left-right, RGB */
-    lcd_cmd(ST_MADCTL);  lcd_data8(0x00);
+    /* 4) Pixel format + bellek erişim yönü                                   */
+    lcd_cmd(ST_MADCTL);  lcd_data8(0x00);   /* top-down, left-right, RGB     */
+    lcd_cmd(ST_COLMOD);  lcd_data8(0x55);   /* 16-bit RGB565                 */
 
-    /* COLMOD: 16-bit RGB565 */
-    lcd_cmd(ST_COLMOD);  lcd_data8(0x55);
+    /* 5) Üretici güç-kontrol + gamma dizisi                                  */
+    lcd_cmd_data(0xB2, INIT_B2, sizeof INIT_B2);
+    lcd_cmd_data(0xB7, INIT_B7, sizeof INIT_B7);
+    lcd_cmd_data(0xBB, INIT_BB, sizeof INIT_BB);
+    lcd_cmd_data(0xC2, INIT_C2, sizeof INIT_C2);
+    lcd_cmd_data(0xC3, INIT_C3, sizeof INIT_C3);
+    lcd_cmd_data(0xC4, INIT_C4, sizeof INIT_C4);
+    lcd_cmd_data(0xC6, INIT_C6, sizeof INIT_C6);
+    lcd_cmd_data(0xD0, INIT_D0, sizeof INIT_D0);
+    lcd_cmd_data(0xE0, INIT_E0, sizeof INIT_E0);
+    lcd_cmd_data(0xE1, INIT_E1, sizeof INIT_E1);
 
-    /* 240x240 IPS panellerde renk inversion tipik olarak gerekli */
+    /* 6) 240x240 IPS panelde renk inversion tipik olarak gerekli            */
     lcd_cmd(ST_INVON);
     HAL_Delay(10);
 
-    /* Ekranı sil */
+    /* 7) Ekranı sil (DISPON öncesi — açılışta garbage gösterme)             */
     lcd_set_window(0, 0, LCD_W - 1, LCD_H - 1);
     /* Çok büyük (115200 byte); küçük tampondan parça parça gönder        */
     {
@@ -201,9 +244,11 @@ bool lcd_init(void)
         lcd_cs(false);
     }
 
+    /* 8) Display on */
     lcd_cmd(ST_DISPON);  HAL_Delay(20);
 
-    /* Backlight PWM (TIM1 CH1 / PA8) */
+    /* 9) Backlight: BLK (PA8) aktif-HIGH; TIM1_CH1 PWM ile dimming.
+          İçerik hazır olduktan SONRA açılır (boot'ta garbage flash yok).     */
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
     lcd_set_backlight(60);
 

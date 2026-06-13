@@ -331,3 +331,28 @@
 **Risks Resolved:** Alarm-low 3.6 mA üretilemiyor bug'ı (kayıtsızdı — bulunup kapatıldı); header/c transfer fonksiyonu çelişkisi
 
 **Next Action:** CARD-3.1 — LCD güç sırası + donanım doğrulama (P3)
+
+## 2026-06-13 | Execute | Task: CARD-3.1
+
+**Task ID:** CARD-3.1
+**Type:** Execute
+**Status:** Complete (kod); donanım görsel doğrulaması MANUAL-4 bekliyor
+
+**Files Created:** Yok
+**Files Modified:**
+- `App/Src/lcd400.c` — güç/reset zamanlama sabitleri (LCD_PWR_SETTLE_MS=50, RST_LOW=10, RST_WAIT=120, SLPOUT=120); lcd_cmd_data() helper; üretici ST7789V güç-kontrol + gamma dizisi eklendi (0xB2 porch, 0xB7 gate, 0xBB VCOM, 0xC2/C3/C4 VRH/VDV, 0xC6 FRCTRL 60Hz, 0xD0 power-ctrl, 0xE0/E1 gamma ±); SWRESET kaldırıldı (HW reset yeterli, üretici de kullanmıyor); CS2 hardcoded GPIOC/PIN9 yerine LCD_CS2_PORT/PIN makroları; backlight DISPON sonrası (garbage flash yok)
+
+**Tests / Validations Run:**
+- Datasheet (DS154S10Z0TG01.pdf) üretici init dizisi çıkarıldı ve birebir kodlandı (14'er bayt gamma dahil)
+- `cmake --build build/Debug` → PASS (0 error / 0 warning)
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda görsel çıktı, kontrast/renk doğruluğu (gamma sonrası), 10× soğuk açılış güvenilirliği, reset zamanlamasının panelle uyumu — MANUAL-4 (ekran + ST-Link gerekli)
+
+**Result:** LCD init artık üretici referans dizisini birebir uyguluyor — eski init reset-default güç/gamma ile sönük/yanlış kontrast riski taşıyordu. Güç sırası (PA10 settle → HW reset → 120 ms → SLPOUT) datasheet/üretici zamanlamasına hizalandı. Backlight içerik hazır olduktan sonra açılıyor (boot'ta garbage flash yok).
+
+**Risks Introduced:** Gamma/VCOM değerleri üretici default'u — panel lot farkıyla ince ayar gerekebilir (MANUAL-4'te görsel kontrol)
+**Risks Resolved:** Eksik güç-kontrol/gamma register'ları (sönük/yanlış ekran riski) → kapandı
+
+**Next Action:** CARD-3.2 — menü state machine iyileştirmeleri (timeout, sayfalar, alarm ekranı, backlight menü)
