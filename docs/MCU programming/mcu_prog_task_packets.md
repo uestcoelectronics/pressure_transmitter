@@ -220,3 +220,23 @@
 **Diff budget:** 2 değişen, 0 yeni.
 **Done criteria:** temiz build; deterministik kenar + health gating + flash-safe feed kodda; MANUAL-2 CWD maddesi; donanım MANUAL-4.
 **Stop conditions:** ek dosya gerekirse dur.
+
+## TASK PACKET CARD-6.2 — 2026-06-13
+
+**Goal:** Temel tanılar (diag modülü): ADC kanal rail-stuck (A.13), output GPIO read-back (A.7), I2C bus recovery (9-clock); tanı bayrağı → ekran + güvenlik yolu.
+**Non-goals:** Tam EN 61508 seti (RAM March, saat çapraz); divider mutlak gerilim ölçümü (ratio şemadan — tunable bırakıldı); driver dosyalarına dokunma.
+**Tasarım kararları:**
+- ADC tanısı **divider-bağımsız**: VCC_FB ve I_loop ham ADC'nin 0 veya full-scale'e takılması (kopuk kanal/mux arızası). Mutlak gerilim eşiği YOK (divider ratio bilinmiyor — MANUAL).
+- GPIO read-back: ODR (komut) vs IDR (gerçek) karşılaştırma; izlenen output'lar LOOP_EN(PB2,kritik), LCD_PWR(PA10), BLE_PWR(PC2), CLK_EN(PD2); 2-örnek kalıcılık (transient elenir)
+- LOOP_EN read-back uyuşmazlığı = güvenlik-kritik → diag_critical() → pressure_app loop_set_safe_state(); diğer bayraklar advisory ("DIAG CHK" ekran)
+- I2C bus recovery: diag fiziksel kurtarma sağlar (PB8/PB9 GPIO-OD, 9 clock, STOP, AF4 geri, MX_I2C1_Init); pressure_app orkestre eder: fdc VE tmp108 birlikte N tik sağlıksızsa kurtar + cihazları yeniden init (cooldown'lu)
+- diag driver'lara DOKUNMAZ — sağlığı fdc2214_has_error()/tmp108_is_ok() ile gözler (katman temiz)
+**Exact files inspected:** pressure_app.c (tam), bsp_pins.h (pin makroları + ADC rank), fdc2214.h/tmp108.h (sağlık API), i2c.h (MX_I2C1_Init), gpio.c (PB8/PB9 AF4).
+**Files allowed to edit:** yeni App/Src/diag.c + App/Inc/diag.h; App/Src/pressure_app.c; Firmware/CMakeLists.txt (2 değişen + 2 yeni — bütçe içinde)
+**Files forbidden:** fdc2214.c/tmp108.c (driver), Core/**, .ioc
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanımda: VCC_FB kanalını kısa/aç → DIAG bayrağı; LOOP_EN'i zorla → safe state; I2C SDA'yı GND'ye çek → bus recovery + cihaz reinit.
+**Rollback plan:** git checkout -- pressure_app.c CMakeLists.txt; yeni dosyaları sil.
+**Diff budget:** 2 değişen, 2 yeni.
+**Done criteria:** temiz build; range-check + read-back + bus recovery kodda; tanı bayrağı alarm/ekran yoluna bağlı; donanım MANUAL-4.
+**Stop conditions:** driver/Core değişikliği gerekirse dur.

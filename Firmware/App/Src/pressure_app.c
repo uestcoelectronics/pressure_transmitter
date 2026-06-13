@@ -8,6 +8,7 @@
 #include "temp_diode.h"
 #include "tmp108.h"
 #include "xtr111_loop.h"
+#include "diag.h"
 #include "stm32u3xx_hal.h"
 #ifdef USE_IWDG
 #include "iwdg.h"        /* CubeMX'in IWDG handle'ı */
@@ -133,6 +134,7 @@ static const char *status_line(void)
            loop_has_deviation()         ? "LOOP DEV"     :
            !temp_diode_is_consistent()  ? "TDIODE ERR"   :
            tmp108_overtemp()            ? "AMB HOT >60C" :
+           diag_any()                   ? "DIAG CHK"     :
            loop_is_enabled()            ? "OK"           : "LOOP DISABLED";
 }
 
@@ -238,6 +240,8 @@ void pressure_app_init(void)
     /* TMP108 ortam monitörü — başarısızlık ölümcül değil (ölçüm sürer)       */
     (void)tmp108_init();
 
+    diag_init();
+
     /* Loop output init (safe state'te kalır) */
     loop_init();
 
@@ -338,6 +342,31 @@ void pressure_app_loop(void)
 
         /* Loop servis: sapma monitörü + fault auto-retry                      */
         loop_service(now);
+
+        /* ---- Tanılar (A.13 ADC rail-stuck, A.7 GPIO read-back) ---- */
+        diag_service(s_adc_buf[ADC_RANK_VCC_FB], s_adc_buf[ADC_RANK_ILOOP_FB]);
+        /* LOOP_EN read-back kritik arızası → güvenli durum */
+        if (diag_critical() && !loop_is_in_fault()) {
+            loop_set_safe_state();
+        }
+
+        /* ---- I2C bus recovery: iki cihaz da uzun süre sağlıksızsa ---- */
+        static uint8_t  i2c_bad_cnt = 0;
+        static uint32_t i2c_recov_t = 0;
+        if (fdc2214_has_error() && !tmp108_is_ok()) {
+            if (i2c_bad_cnt < 255u) i2c_bad_cnt++;
+        } else {
+            i2c_bad_cnt = 0;
+        }
+        /* 5 ardışık tik (~500 ms) + en az 5 s cooldown */
+        if (i2c_bad_cnt >= 5u && (now - i2c_recov_t) >= 5000u) {
+            i2c_recov_t = now;
+            i2c_bad_cnt = 0;
+            diag_i2c_bus_recover();
+            (void)fdc2214_init();   /* bus serbest → cihazları yeniden kur   */
+            if (fdc2214_has_error() == false) fdc2214_start();
+            (void)tmp108_init();
+        }
     }
 
     /* ---- Ortam sıcaklığı (TMP108, her 1000 ms) ---- */

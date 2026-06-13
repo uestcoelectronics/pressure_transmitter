@@ -409,3 +409,29 @@
 **Risks Resolved:** cal_save flash erase watchdog starvation (MEDIUM) → kapandı; toggle 2× periyot belirsizliği → kapandı
 
 **Next Action:** CARD-6.2 — temel tanılar (diag modülü: ADC range-check, GPIO read-back, I2C bus recovery) veya CARD-5.1 BLE (MANUAL-5 önkoşul)
+
+## 2026-06-13 | Execute | Task: CARD-6.2
+
+**Task ID:** CARD-6.2
+**Type:** Execute
+**Status:** Complete (kod) — P6 fazı kod tarafı TAMAMLANDI
+
+**Files Created:**
+- `App/Inc/diag.h`, `App/Src/diag.c` — temel tanı modülü
+**Files Modified:**
+- `App/Src/pressure_app.c` — diag_init; sensör tikinde diag_service (VCC/I_loop raw); diag_critical() → loop_set_safe_state(); I2C bus recovery orkestrasyonu (fdc+tmp108 birlikte ~500 ms sağlıksız → 9-clock recovery + cihaz reinit, 5 s cooldown); status_line'a "DIAG CHK"
+- `Firmware/CMakeLists.txt` — diag.c target_sources
+
+**Tests / Validations Run:**
+- `cmake --preset Debug` + `cmake --build build/Debug` → PASS (0 error / 0 warning); diag.c.obj üretildi + elf'e linklendi
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda ADC rail-stuck tetikleme, LOOP_EN read-back → safe state, I2C SDA-stuck bus recovery — MANUAL-4. Rail-stuck eşikleri (±8 LSB) ve I2C recovery zamanlaması donanımda doğrulanacak.
+
+**Result:** Temel FMEDA tanıları kodda: (A.13) VCC_FB ve loop-akım ADC kanallarının rail'e takılması (kopuk/mux arızası — divider-bağımsız); (A.7) output GPIO read-back (ODR↔IDR) LOOP_EN/LCD_PWR/BLE_PWR/CLK_EN, LOOP_EN kritik → güvenli durum; I2C fiziksel bus recovery (9-clock+STOP+reinit) iki cihaz birlikte takılınca. diag driver'lara dokunmadı (sağlığı mevcut API ile gözler). Tanı bayrağı ekran ("DIAG CHK") ve güvenlik yoluna (LOOP_EN) bağlı.
+
+**Risks Introduced:** ADC rail-stuck eşiği ve I2C recovery tetik sayısı donanımda ayarsız (untuned — MANUAL-4); LOOP_EN read-back → safe state nuisance-trip riski (2-örnek kalıcılıkla azaltıldı)
+**Risks Resolved:** I2C bus stuck kalıcı arıza riski → kapandı (otomatik recovery)
+
+**Next Action:** CARD-5.1 — BLE UART taşıma katmanı (MANUAL-5: DL-CC2340-B datasheet indirme önkoşulu). Kalan: 5.1/5.2 + 7.x manuel.
