@@ -39,13 +39,15 @@
 | LCD + menü | complete (kod) — LCD init (3.1) + menü timeout/sayfa/alarm/backlight (3.2); donanım testi yok |
 | 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
 | BLE | not started |
-| Watchdog | in progress — kick var, pencere teyitsiz |
+| Watchdog | complete (kod) — CARD-6.1: A.16 koşullu besleme + flash-safe + deterministik kenar; CWD pencere teyidi (MANUAL-2 m.6) açık |
 | Tanılar (diag) | not started |
 | Donanım doğrulama | not started |
 
 ## Last Completed Task
 
-- **Task ID:** CARD-3.2 | **Tarih:** 2026-06-13 | **Commit:** 0f43ab1 — **P3 kod tarafı TAMAM**
+- **Task ID:** CARD-6.1 | **Tarih:** 2026-06-13 | **Commit:** f63ecaf
+- **Özet:** TPS3851 windowed watchdog: deterministik düşen-kenar besleme (wdt_feed_raw), güvenlik görevi canlılığına koşullu (A.16, 400 ms health), cal_save erase öncesi besleme. Datasheet analizi (web). Build PASS 0/0. **Açık önkoşul:** CWD pencere değeri (MANUAL-2 m.6) → 100 ms kick uyumu doğrulanmalı.
+- **Önceki:** CARD-3.2 | Commit: 0f43ab1 — P3 kod tarafı TAMAM
 - **Özet:** Menü iyileştirmeleri: 60 s eylemsizlik timeout (discard→NORMAL); NORMAL'de 3 sayfa (MAIN/SENSOR/LOOP, UP/DN); loop fault alarm ekranı; backlight % menü öğesi (runtime, kalıcı değil). Build PASS 0/0.
 - **Önceki:** CARD-3.1 | Commit: b5fd7c0
 - **Özet:** LCD güç sırası + datasheet reset zamanlaması + üretici ST7789V güç-kontrol/gamma dizisi (0xB2/B7/BB/C2-C6/D0/E0/E1 — eksikti). SWRESET kaldırıldı, backlight DISPON sonrası. Build PASS 0/0. Görsel doğrulama MANUAL-4.
@@ -75,7 +77,7 @@
 
 ## Next Recommended Task
 
-- **CARD-6.1 — TPS3851 watchdog** (önerilen, donanımsız: web datasheet + zamanlama analizi + kick stratejisi) veya **CARD-5.1 — BLE UART** (MANUAL-5 datasheet indirme önkoşulu). Kalan kod kartları: 5.1, 5.2, 6.1, 6.2 (+ manuel ağırlıklı 7.x).
+- **CARD-6.2 — Temel tanılar (diag modülü):** ADC range-check (TMP/VCC_FB/I_FB), GPIO read-back (LOOP_EN/LCD_PWR/BLE_PWR/CLK_EN), I2C hata sayaçları + bus recovery → tanı bayrağı/alarm. Donanımsız ilerler. Sonra: CARD-5.1/5.2 BLE (MANUAL-5 önkoşul) + 7.x manuel.
 
 ## Open Risks
 
@@ -86,8 +88,8 @@
 | PIN_MAPPING.xlsx AF kolonunda hatalar olabilir (IN13/14 örneği) | LOW | Pin haritası net isimleri için otorite; AF/kanal no'ları CubeMX/datasheet'ten teyit edilir |
 | INT_B data-ready gating: pin beklenmedik HIGH kalırsa ölçüm durur | MEDIUM | MANUAL-4 ilk test maddesi; gerekirse timeout fallback eklenir |
 | TMP108 ortam alert'i ve PC1 diyot kanalı eksik | MEDIUM | CARD-1.2/1.3/1.4 |
-| TPS3851 pencere ihlali → reset döngüsü | MEDIUM | CARD-6.1 zamanlama analizi |
-| cal_save flash erase sırasında IWDG reset | MEDIUM | CARD-6.1 kick stratejisi |
+| TPS3851 CWD penceresi 100 ms kick'i içermezse reset döngüsü | HIGH | MANUAL-2 m.6 CWD teyidi → WDT_KICK_PERIOD_MS ayarı |
+| ~~cal_save flash erase watchdog starvation~~ | — | KAPANDI: CARD-6.1 erase öncesi besleme |
 | CubeMX regenerate USER CODE dışı kayıplar | MEDIUM | .ioc değişiklikleri manuel + regenerate sonrası diff |
 | FDC I2C adresi 0x2A/0x2B belirsiz | LOW | CARD-1.1 çift deneme + MANUAL-2 |
 

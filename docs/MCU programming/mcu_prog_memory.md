@@ -14,7 +14,7 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 - **Sıcaklık mimarisi (KULLANICI TEYİTLİ):** Kompanzasyon = PC0/PC1 **1N4148 diyotlar** (sensör içi; datasheet: `__TI_DATASHEETS\1N914-D.PDF` 1N4x48 dahil) — temp_diode.c modeli doğru, PC1 kanalı eklenecek. **TMP108 = yalnız ortam sıcaklığı**, T_HIGH=60 °C alert → FLT_TEMP# (PB5) kesmesi. TMP108 kompanzasyonda KULLANILMAZ, failover da yapılmaz
 - LCD: BDS154S10Z0TG01 = **ST7789V** 240×240 SPI (datasheet teyitli) — lcd400.c uyumlu
 - BLE modülü AT komutlu (DreamLNK DL-CC2340-B, CC2340R5); USART3 PC10/PC11; sürücü YOK
-- Watchdog: TPS3851H30 (windowed!) WDI=PC3 + IWDG ~256 ms; pencere zamanlaması teyitsiz
+- Watchdog: TPS3851H30 (windowed, düşen-kenar) WDI=PC3 + IWDG ~256 ms. CARD-6.1: wdt_feed_raw() koşullu besleme (güvenlik görevi canlı + 400 ms), cal_save erase öncesi besler. tWD CWD'ye bağlı (std 0.7ms-3.23s/ext 62ms-77s) — KICK 100 ms pencereye düşmeli, CWD şema teyidi MANUAL-2 m.6
 
 ## Kullanıcı Tercihleri
 - İletişim Türkçe; teknik terimler İngilizce kalabilir
@@ -31,8 +31,8 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P0-P4 kod tarafı TAMAM (P0,P1,P2,P3,P4) | **Son:** CARD-3.2 menü iyileştirme (0f43ab1)
-- **Sıradaki:** CARD-6.1 watchdog (önerilen, donanımsız) veya CARD-5.1 BLE (MANUAL-5 önkoşul). Kalan: 5.1/5.2/6.1/6.2 + 7.x manuel
+- **Faz:** P0-P4 + CARD-6.1 kod TAMAM | **Son:** CARD-6.1 watchdog (f63ecaf)
+- **Sıradaki:** CARD-6.2 tanılar (diag: ADC range/GPIO read-back/I2C recovery, donanımsız) → CARD-5.1/5.2 BLE (MANUAL-5 önkoşul) + 7.x manuel
 - UI: 60 s timeout, NORMAL 3 sayfa (sm_get_normal_page), fault alarm ekranı, backlight runtime (%60 boot, kalıcı değil)
 - Loop: NAMUR sabitleri xtr111_loop.h'ta; komut penceresi 3.6..21.0; sapma 0.3 mA/2 s; FLT retry 5 s
 - Kalibrasyon eşikleri: CAL_STAB_P2P_MAX=2000, CAL_MIN_SPAN_COUNTS=10000 (state_machine.c, donanımda ayarlanacak)
