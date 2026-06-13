@@ -277,3 +277,17 @@
 **Diff budget:** 1 değişen prod, 2 yeni.
 **Done criteria:** temiz build; AT init SM + frame parser + komutlar + CRC + unlock kodda; donanım MANUAL-5.
 **Stop conditions:** ble_uart API yetmezse dur.
+
+## TASK PACKET DBG-SWO — 2026-06-13 (kullanıcı isteği: canlı telemetri)
+
+**Goal:** SWO/ITM üzerinden canlı telemetri (P/T/mA/status) — Claude donanımda ST-Link SWV ile non-intrusive okuyabilsin.
+**Non-goals:** SWO okuma tarafı host kurulumu (donanım bring-up'ta kesinleşir); semihosting (core halt → kontrol döngüsünü bozar, kullanılmıyor).
+**Tasarım:** Yeni dbg_swo.c/h — CMSIS ITM_SendChar (debugger yoksa no-op, sıfır maliyet) port 0; dbg_swo_init() CoreDebug TRCENA set; dbg_swo_telemetry() 1 Hz CSV satır "P=..,T=..,I=..,ST=0xXX". PB3=SWO AF0 zaten CubeMX (gpio.c) — pin değişikliği YOK. Trace baud'u debugger (ST-LINK SWV) çekirdek saatinden ayarlar; firmware yalnız ITM yazar.
+**Exact files inspected:** gpio.c (PB3 SWO AF0 ✓), pressure_app.c (loop tick yapısı), core_cm33.h (ITM_SendChar — CMSIS).
+**Files allowed to edit:** yeni App/Src/dbg_swo.c + App/Inc/dbg_swo.h; App/Src/pressure_app.c; Firmware/CMakeLists.txt (1 değişen prod + 2 yeni)
+**Validation commands:** cmake --build build/Debug
+**Manual validation scenario:** Donanım: ST-LINK_gdbserver SWV başlat (çekirdek saati) → ITM port 0 CSV akışı oku.
+**Rollback plan:** git checkout -- pressure_app.c CMakeLists.txt; yeni dosyaları sil.
+**Diff budget:** 1 değişen prod, 2 yeni.
+**Done criteria:** temiz build; ITM emit + 1 Hz telemetri kodda; SWO okuma host tarafı flash_debug.md'de not.
+**Stop conditions:** ITM/CMSIS erişimi build'i kırarsa dur.

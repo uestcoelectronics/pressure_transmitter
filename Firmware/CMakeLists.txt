@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/App/Src/diag.c
     ${CMAKE_SOURCE_DIR}/App/Src/ble_uart.c
     ${CMAKE_SOURCE_DIR}/App/Src/ble_proto.c
+    ${CMAKE_SOURCE_DIR}/App/Src/dbg_swo.c
     ${CMAKE_SOURCE_DIR}/App/Src/lcd400.c
     ${CMAKE_SOURCE_DIR}/App/Src/buttons.c
     ${CMAKE_SOURCE_DIR}/App/Src/cal_storage.c

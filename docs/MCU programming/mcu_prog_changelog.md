@@ -489,3 +489,30 @@
 **Risks Resolved:** BLE konfig eksikliği (gereksinim) → kapandı (kod düzeyinde)
 
 **Next Action:** TÜM KOD KARTLARI TAMAM. Kalan: CARD-7.1/7.2 donanım bring-up + soak (kart + ST-Link + MANUAL-2/4 gerekli). Donanım gelince /ease-me execute CARD-7.1.
+
+## 2026-06-13 | Execute | Task: DBG-SWO (canlı telemetri — kullanıcı isteği)
+
+**Task ID:** DBG-SWO
+**Type:** Execute (debug altyapısı)
+**Status:** Complete (kod); SWO okuma donanımda (ST-Link SWV)
+
+**Files Created:**
+- `App/Inc/dbg_swo.h`, `App/Src/dbg_swo.c` — SWO/ITM telemetri modülü
+**Files Modified:**
+- `App/Src/pressure_app.c` — dbg_swo_init() + 1 Hz dbg_swo_telemetry()
+- `Firmware/CMakeLists.txt` — dbg_swo.c
+- `mcu_prog_flash_debug.md` — SWO okuma tarafı notu
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → PASS (0 error / 0 warning); dbg_swo.c.obj + elf
+
+**Validation Level Reached:** 2 — derleme/link
+
+**What was NOT validated:** Donanımda SWV akışı (ST-Link + çekirdek saati gerekli) — bring-up'ta
+
+**Result:** Non-intrusive canlı telemetri eklendi: ITM port 0'a 1 Hz "P=..,T=..,I=..,ST=0x.." satırı. CMSIS ITM_SendChar — SWV bağlı değilken no-op (sıfır maliyet, core halt yok, 4-20 döngüsü bozulmaz). PB3=SWO (AF0) zaten konfigli; firmware yalnız TRCENA + ITM yazımı yapar, trace baud'unu debugger ayarlar. Donanımda Claude SWV ile P/T/mA/status akışını canlı okuyabilecek.
+
+**Risks Introduced:** None (no-op without debugger)
+**Risks Resolved:** Canlı telemetri kanalı eksikliği → kapandı (firmware tarafı)
+
+**Next Action:** Donanım bekleniyor → CARD-7.1 bring-up (ST-Link takılı + MANUAL-2 teyitleri gerekli)

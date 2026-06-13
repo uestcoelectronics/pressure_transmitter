@@ -11,6 +11,7 @@
 #include "diag.h"
 #include "ble_uart.h"
 #include "ble_proto.h"
+#include "dbg_swo.h"
 #include "stm32u3xx_hal.h"
 #ifdef USE_IWDG
 #include "iwdg.h"        /* CubeMX'in IWDG handle'ı */
@@ -248,6 +249,9 @@ void pressure_app_init(void)
     ble_uart_init();
     ble_proto_init();
 
+    /* SWO/ITM canlı telemetri (debugger yoksa no-op)                        */
+    dbg_swo_init();
+
     /* Loop output init (safe state'te kalır) */
     loop_init();
 
@@ -435,6 +439,10 @@ void pressure_app_loop(void)
         (diag_any()                  ? 0x20u : 0u) |
         (loop_is_enabled()           ? 0x80u : 0u));
     ble_proto_service(now, s_disp_p, temp_diode_get_celsius(),
+                      loop_get_measured_ma(), bstat);
+
+    /* SWO/ITM canlı telemetri (1 Hz; SWV yoksa no-op) */
+    dbg_swo_telemetry(now, s_disp_p, temp_diode_get_celsius(),
                       loop_get_measured_ma(), bstat);
 }
 

@@ -91,9 +91,17 @@ STM32_Programmer_CLI -c port=SWD mode=UR -r32 0x0807E000 0x40
 
 ---
 
-## 4) Canlı telemetri seçenekleri
+## 4) Canlı telemetri — SWO/ITM (EKLENDİ: DBG-SWO)
 
-- **SWO/ITM trace:** PB3 = SWO kartta mevcut (pin haritası). ST-LINK_gdbserver SWV yakalayabilir → printf'i ITM'e yönlendirip Claude canlı P/T/mA akışını okuyabilir. (İstenirse küçük bir `dbg_swo` kartı açılır — CARD-7 kapsamı.)
+Firmware artık **ITM port 0**'a 1 Hz telemetri satırı yazıyor (modül `dbg_swo.c`):
+```
+P=<bar>,T=<C>,I=<mA>,ST=0x<hex>\n
+```
+- PB3 = SWO (AF0, CubeMX) — pin hazır. ITM_SendChar **debugger/SWV yoksa no-op** (sıfır maliyet, kontrol döngüsünü bozmaz; semihosting gibi core HALT etmez).
+- Çekirdek saatini debugger ayarlar (SWV trace baud = HCLK'a göre).
+
+**Okuma (host) — Claude donanımda yapacak:** ST-LINK_gdbserver SWV/SWO çıkışı çekirdek saati verilerek başlatılır; ITM port 0 akışı dosyaya/konsola alınır. Kesin komut donanım bring-up'ta netleşir (gdbserver SWV opsiyonları + HCLK değeri). Alternatif: GDB `monitor` ile ITM okuma. **Önce HCLK değeri** gerekli (main.c saat konfigi: MSIS/2 — bring-up'ta ölçülüp girilecek).
+
 - **BLE GET_MEAS:** ble_proto zaten P/T/mA/status veriyor; ama BLE central (telefon) tarafını Claude süremez — bu senin nRF Connect testin.
 
 ---
