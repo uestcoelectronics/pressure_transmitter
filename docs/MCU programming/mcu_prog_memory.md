@@ -31,9 +31,9 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 `Firmware/Drivers/**`, `Firmware/cmake/**`, `startup_*.s`, `*.ld`, `Core/**` USER CODE dışı, `Firmware/build/**`, `.ioc` (elle düzenleme yok → CubeMX manuel adımı)
 
 ## Roadmap Konumu
-- **Faz:** P0-P2+P4 TAMAM, P3 in progress | **Son:** CARD-3.1 LCD init (b5fd7c0)
-- **Sıradaki:** CARD-3.2 menü iyileştirme (timeout/sayfalar/alarm/backlight) → P5 BLE → P6 watchdog/tanı
-- LCD: üretici ST7789V dizisi (gamma/güç) lcd400.c'de; backlight PA8 PWM DISPON sonrası
+- **Faz:** P0-P4 kod tarafı TAMAM (P0,P1,P2,P3,P4) | **Son:** CARD-3.2 menü iyileştirme (0f43ab1)
+- **Sıradaki:** CARD-6.1 watchdog (önerilen, donanımsız) veya CARD-5.1 BLE (MANUAL-5 önkoşul). Kalan: 5.1/5.2/6.1/6.2 + 7.x manuel
+- UI: 60 s timeout, NORMAL 3 sayfa (sm_get_normal_page), fault alarm ekranı, backlight runtime (%60 boot, kalıcı değil)
 - Loop: NAMUR sabitleri xtr111_loop.h'ta; komut penceresi 3.6..21.0; sapma 0.3 mA/2 s; FLT retry 5 s
 - Kalibrasyon eşikleri: CAL_STAB_P2P_MAX=2000, CAL_MIN_SPAN_COUNTS=10000 (state_machine.c, donanımda ayarlanacak)
 - Kompanzasyon: P −= (k_t_zero + k_t_span·frac)·ΔT; menü 11 öğe ("/11" pressure_app'te hardcoded — MI__COUNT ile senkron tut)

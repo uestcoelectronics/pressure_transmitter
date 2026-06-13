@@ -78,18 +78,18 @@ const D = {
   repoPath:      "C:\\PressureTransmitter",
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
   branch:        "main",
-  lastCommit:    "b5fd7c0",
+  lastCommit:    "0f43ab1",
   lastUpdated:   "2026-06-13",
   implementationAllowed: true,
   validationLevel: 2,
 
-  progress: { done: 11, total: 16 },
+  progress: { done: 12, total: 16 },
 
   phases: [
     { id: "P0", title: "Baseline & Donanım Mutabakatı",        status: "complete" },
     { id: "P1", title: "Sensör Yolu Tamamlama",                status: "complete" },
     { id: "P2", title: "Kalibrasyon & Sıcaklık Kompanzasyonu", status: "complete" },
-    { id: "P3", title: "Ekran & Menü İyileştirme",             status: "in_progress" },
+    { id: "P3", title: "Ekran & Menü İyileştirme",             status: "complete" },
     { id: "P4", title: "4-20 mA Döngü Bütünlüğü",              status: "complete" },
     { id: "P5", title: "Bluetooth Konfigürasyon",              status: "not_started" },
     { id: "P6", title: "Watchdog & Tanılar",                   status: "not_started" },
@@ -107,7 +107,7 @@ const D = {
     { id: "CARD-2.1", title: "Kompanzasyon modeli v2",                 status: "done",        blockedBy: null },
     { id: "CARD-2.2", title: "Kalibrasyon sağlamlaştırma",             status: "done",        blockedBy: null },
     { id: "CARD-3.1", title: "LCD güç sırası + donanım testi",         status: "done",        blockedBy: null },
-    { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "next",        blockedBy: null },
+    { id: "CARD-3.2", title: "Menü SM iyileştirmeleri",                status: "done",        blockedBy: null },
     { id: "CARD-4.1", title: "Loop makullük + NAMUR alarmları",        status: "done",        blockedBy: null },
     { id: "CARD-5.1", title: "BLE UART taşıma katmanı",                status: "not_started", blockedBy: "CARD-0.2" },
     { id: "CARD-5.2", title: "BLE konfigürasyon protokolü",            status: "not_started", blockedBy: "CARD-5.1" },
@@ -148,9 +148,9 @@ const D = {
   ],
 
   lastChangedFiles: [
+    "Firmware/App/Inc+Src/state_machine — timeout + sayfalar + backlight (CARD-3.2)",
+    "Firmware/App/Src/pressure_app.c — sayfa render + fault ekranı + sm_tick (CARD-3.2)",
     "Firmware/App/Src/lcd400.c — güç sırası + üretici ST7789V init/gamma (CARD-3.1)",
-    "Firmware/App/Inc+Src/xtr111_loop — NAMUR + sapma monitörü + retry (CARD-4.1)",
-    "Firmware/App/Src/pressure_app.c — satürasyon, LOOP DEV, loop_service (CARD-4.1)",
   ],
 
   changelog: [
@@ -167,9 +167,10 @@ const D = {
     { date: "2026-06-13", id: "CARD-2.2",      type: "Execute",    summary: "Kalibrasyon sağlamlaştırma: stabilite penceresi + yakalama reddi, span/P doğrulama, Exit çift onay, mesaj API'si. P2 kod tarafı TAMAM. Build PASS." },
     { date: "2026-06-13", id: "CARD-4.1",      type: "Execute",    summary: "NAMUR NE43 + sapma monitörü + FLT auto-retry. BUG FIX: 3.6 mA alarm-low clamp yüzünden üretilemiyordu. P4 kod tarafı TAMAM. Build PASS." },
     { date: "2026-06-13", id: "CARD-3.1",      type: "Execute",    summary: "LCD güç sırası + datasheet reset zamanlaması + üretici ST7789V güç/gamma dizisi (eksikti). Build PASS. Görsel doğrulama MANUAL-4." },
+    { date: "2026-06-13", id: "CARD-3.2",      type: "Execute",    summary: "Menü: 60 s timeout, NORMAL 3 sayfa (MAIN/SENSOR/LOOP), fault alarm ekranı, backlight % (runtime). P3 kod tarafı TAMAM. Build PASS." },
   ],
 
-  nextPrompt: "/ease-me execute CARD-3.2  (menü iyileştirme: timeout, sayfalar, alarm ekranı, backlight menü)",
+  nextPrompt: "/ease-me execute CARD-6.1  (TPS3851 watchdog zamanlaması + kick stratejisi) — donanımsız ilerler",
 };
 </script>
 

@@ -25,6 +25,7 @@
 | D5 | Menü timeout 60 s | Saha pratiği |
 | D6 | 1N4148 varsayılanları: TC≈−2 mV/°C, V_f25 bias akımına bağlı (~600 mV @ ~1 mA) | onsemi 1N914-D.PDF (1N4x48 dahil) repoda; bias direnci MANUAL-2 ile teyit |
 | D8 | TMP108: T_HIGH=60 °C, comparator mode, HYS=4 °C (cihazın maks'ı → alarm ~56 °C'de düşer); alarmda ölçüm devam eder, "AMB HOT" uyarısı | Kullanıcı 60 °C eşiğini verdi; 55 °C histerezis donanımda yok — 4 °C maks (datasheet Table 9) |
+| D9 | Backlight % runtime-only (boot %60); menü timeout 60 s (CARD-3.2 onaylı) | Persistans için format bump gerekirdi (v2 kapalı) — ertelendi |
 | D7 | Commit/push YOK (varsayılan) | ease-me politikası |
 
 ## Current Repo Status
@@ -35,7 +36,7 @@
 | FDC2214 sürücü | complete (kod) — CARD-1.1: sıralama+adres tespiti+ERRB/INT_B; donanım testi MANUAL-4 |
 | Sıcaklık ölçümü | complete (kod) — çift 1N4148 + TMP108 ortam/alert; donanım testi MANUAL-4; rol entegrasyonu CARD-1.4 |
 | Kalibrasyon + flash | complete (kod) — v2 format + migrasyon + kompanzasyon v2; sağlamlaştırma CARD-2.2; donanım testi yok |
-| LCD + menü | LCD init complete (CARD-3.1: üretici dizisi+güç sırası); menü iyileştirme CARD-3.2; donanım testi yok |
+| LCD + menü | complete (kod) — LCD init (3.1) + menü timeout/sayfa/alarm/backlight (3.2); donanım testi yok |
 | 4-20 loop sürücü | complete (kod) — NAMUR + sapma tanısı + auto-retry (CARD-4.1); donanım testi yok |
 | BLE | not started |
 | Watchdog | in progress — kick var, pencere teyitsiz |
@@ -44,7 +45,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** CARD-3.1 | **Tarih:** 2026-06-13 | **Commit:** b5fd7c0
+- **Task ID:** CARD-3.2 | **Tarih:** 2026-06-13 | **Commit:** 0f43ab1 — **P3 kod tarafı TAMAM**
+- **Özet:** Menü iyileştirmeleri: 60 s eylemsizlik timeout (discard→NORMAL); NORMAL'de 3 sayfa (MAIN/SENSOR/LOOP, UP/DN); loop fault alarm ekranı; backlight % menü öğesi (runtime, kalıcı değil). Build PASS 0/0.
+- **Önceki:** CARD-3.1 | Commit: b5fd7c0
 - **Özet:** LCD güç sırası + datasheet reset zamanlaması + üretici ST7789V güç-kontrol/gamma dizisi (0xB2/B7/BB/C2-C6/D0/E0/E1 — eksikti). SWRESET kaldırıldı, backlight DISPON sonrası. Build PASS 0/0. Görsel doğrulama MANUAL-4.
 - **Önceki:** CARD-4.1 | Commit: 0fe297f — P4 kod tarafı TAMAM
 - **Özet:** NAMUR NE43 seviyeleri + satürasyon; sapma monitörü (0.3 mA / 2 s, tanı bayrağı + LED 5 Hz + "LOOP DEV"); FLT auto-retry (5 s, pin seviyesi kontrollü). **BUG FIX:** alarm-low 3.6 mA clamp yüzünden üretilemiyordu. Build PASS 0/0.
@@ -72,7 +75,7 @@
 
 ## Next Recommended Task
 
-- **CARD-3.2 — Menü state machine iyileştirmeleri:** 60 s timeout→NORMAL, NORMAL sayfa geçişi (P/T/mA/ΔC), alarm/fault ekranı, backlight % menü öğesi. Kalan kod kartları: 3.2, 5.1, 5.2, 6.1, 6.2 (+ manuel ağırlıklı 7.x).
+- **CARD-6.1 — TPS3851 watchdog** (önerilen, donanımsız: web datasheet + zamanlama analizi + kick stratejisi) veya **CARD-5.1 — BLE UART** (MANUAL-5 datasheet indirme önkoşulu). Kalan kod kartları: 5.1, 5.2, 6.1, 6.2 (+ manuel ağırlıklı 7.x).
 
 ## Open Risks
 
