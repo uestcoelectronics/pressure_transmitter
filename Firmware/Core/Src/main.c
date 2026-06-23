@@ -192,7 +192,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin)
     if (pin == BTN_UP_Pin)        buttons_on_edge(BTN_ID_UP);
     else if (pin == BTN_DN_Pin)   buttons_on_edge(BTN_ID_DN);
     else if (pin == BTN_SET_Pin)  buttons_on_edge(BTN_ID_SET);
-    else if (pin == LOOP_FLT_Pin) loop_set_safe_state();
+    else if (pin == LOOP_FLT_Pin) loop_on_flt_edge();   /* enable glitch maskeli */
     else if (pin == FLT_TEMP_Pin) tmp108_on_alert_edge();   /* ortam >60 C */
     /* Diğer EXTI'ler (FDC_INT, FDC_ERRB, BLE_EVENT) şimdilik polling */
 }

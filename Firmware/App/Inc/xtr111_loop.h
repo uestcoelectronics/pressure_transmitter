@@ -51,6 +51,13 @@ float  loop_get_error_ma(void);
 
 /* FLT_4-20mA# pin'i geçince çağrılır — loop'u devre dışı bırakır + bayrak. */
 void   loop_set_safe_state(void);
+
+/* FLT (PA6) düşen-kenar handler (EXTI callback'inden). Enable sonrası settling
+   penceresindeki güç-açılış glitch'ini yok sayar; pencere dışı = gerçek arıza. */
+void   loop_on_flt_edge(void);
+
+/* BRING-UP: DAC override uygula (g_loop_dbg_dac >=0 ise). 100 ms tikinde çağır. */
+void   loop_dbg_apply(void);
 bool   loop_is_in_fault(void);
 void   loop_clear_fault(void);
 

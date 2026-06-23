@@ -4,7 +4,7 @@
 
 ## Session Info
 
-- **Last updated:** 2026-06-12 (Bootstrap oturumu)
+- **Last updated:** 2026-06-22 (HW-READY-01: donanım bring-up hazırlığı, MANUAL-2 kapandı)
 - **Repo path:** `C:\PressureTransmitter`
 - **Workspace path:** `C:\PressureTransmitter\docs\MCU programming`
 - **Current branch:** main (git init 2026-06-12, CARD-0.3)
@@ -45,7 +45,9 @@
 
 ## Last Completed Task
 
-- **Task ID:** DBG-SWO | **Tarih:** 2026-06-13 | **Commit:** defb6d1
+- **Task ID:** HW-READY-01 | **Tarih:** 2026-06-22 | **Commit:** (uncommitted — doküman)
+- **Özet:** Donanım bring-up hazırlığı. Toolchain fiziksel doğrulandı (Programmer v2.21 + gdbserver 7.13 + gdb/nm 15.2.1 + ELF 661 sembol + tools/ + ST-Link sürücü paketi; rebuild=no work). **MANUAL-2 KAPANDI** (tasarımcı değerleri): R_SET=1.2k firmware ile uyumlu✓, FDC ADDR=GND/0x2A✓, diyot bias 3.3V/27k→~100µA (kalibrasyonla ayarlanır), TMP108 0x48-0x4B tarama✓, CWD 1600ms (100ms kick içeride)✓, boot/alarm✓. **BULGU:** firmware HSE/LSE yerine iç MSIS RC0+LSI kullanıyor (X400 24MHz/X401 32.768kHz board'da var, .ioc'da seçili değil) — saat kaynağı kararı bring-up'a ertelendi. WDT programlamada jumper ile disable → reset-loop riski yok. Kod değişikliği YOK.
+- **Önceki:** DBG-SWO | **Tarih:** 2026-06-13 | **Commit:** defb6d1
 - **Özet:** SWO/ITM canlı telemetri (yeni dbg_swo.c/h): ITM port 0'a 1 Hz "P,T,I,ST" — SWV yoksa no-op. Flash/debug altyapısı kuruldu (tools/ + mcu_prog_flash_debug.md): Claude flash + canlı GDB + SWO telemetri yapabilir, tek fiziksel koşul ST-Link takılı olması. Build PASS 0/0.
 - **Önceki:** CARD-5.2 | Commit: 208a458 — **TÜM KOD KARTLARI TAMAM**
 - **Özet:** BLE konfig protokolü (yeni ble_proto.c/h): non-bloklayan AT init (advertise "PT910"), transparent CRC16 çerçeve protokolü (GET_MEAS/GET_PARAM/SET_PARAM/SAVE/INFO/UNLOCK, 9 param, sabit-PIN yazma koruması). Build PASS 0/0.
@@ -81,17 +83,21 @@
 
 ## Current Task
 
-— (bootstrap tamamlandı, bekleme)
+**CARD-7.1 donanım bring-up — DEVAM EDİYOR (2026-06-23 ileri).** Canlı: ADC 4 kanal ✓, FDC2214 okuyor ✓ (donanım tank fix + geçici ERRB bypass), loop enable ✓ (FLT power-up glitch maskesi), **4-20mA çıkış kalibre ✓** (kod=144.5·mA+121; 4/12/20 multimetre ile tam). KALAN: (1) basınç kalibrasyonu (FDC ham→bar), (2) ERRB kalıcı fix (FDC2214'te ERRB pini yok, PA1 hayalet; gate STATUS/data-MSB'ye taşınmalı), (3) TEMP_MEAS_ON diyot bias, (4) debug scaffolding (if(1) bypass + g_loop_dbg_*) temizliği. Detay changelog 2026-06-23.
 
-## Oturum kapanış durumu (2026-06-13)
+---
+**ESKİ NOT:** ADC bug **ÇÖZÜLDÜ** (3 CubeMX iterasyonu, canlı doğrulandı): nihai konfig ContinuousConvMode=DISABLE + ConversionDataManagement=DMA_ONESHOT + DMA Mode=NORMAL + DestInc=INCREMENTED. Firmware artık tam superloop'ta canlı (uwTick akıyor, adc_buf her 100ms taze, jitter kanıtlı, ICSR=0 thread mode). HCLK=48MHz, I2C bus OK (TMP108@0x48, FDC@0x2A). **Kullanıcı sensörleri + 24V beslemeyi bağlamak için gücü kesti (2026-06-23).** Tekrar bağlanınca: probe (VDD kontrol) + canlı FDC/diyot/loop/LCD doğrulama. NOT: VDD 2.85V düşüktü, loop s_fault=1 — kendi beslemesiyle düzelmesi bekleniyor.
 
-**Tüm kod kartları + debug altyapısı TAMAM. Donanım bekleniyor.** Bir sonraki oturumda (donanım geldiğinde):
-1. Kullanıcı ST-Link'i board'a + USB'ye takar → "ST-Link takılı" der
-2. Claude: `docs\MCU programming\tools\probe_test.bat` → bağlantı teyidi
-3. Claude: `flash.bat` → firmware yükle + doğrula
-4. Claude: gdb_server + SWO telemetri ile bring-up (CARD-7.1)
-**ÖNCE:** MANUAL-2 (6 madde, özellikle TPS3851 CWD penceresi — HIGH risk) şema teyitleri.
-Tüm flash/debug detayı: `mcu_prog_flash_debug.md`.
+## Oturum kapanış durumu (2026-06-22)
+
+**Tüm kod kartları + debug altyapısı TAMAM. Toolchain doğrulandı, MANUAL-2 kapandı. Donanım yarın gelecek.** Bir sonraki oturumda (donanım geldiğinde):
+1. Kullanıcı ST-Link'i board'a + USB'ye takar **+ WDT-disable jumper'ını takar** → "ST-Link takılı" der
+2. Claude: `docs\MCU programming\tools\probe_test.bat` → bağlantı teyidi (Device name STM32U3...). Sürücü hatası çıkarsa stsw-link009_v3 kurulur (manuel)
+3. Claude: `flash.bat` → firmware yükle + verify (WDT jumper-disable, reset-loop riski yok)
+4. Claude: gdb_server + SWO telemetri ile bring-up (CARD-7.1); HCLK'yi GDB ile canlı oku (`SystemCoreClock`) → SWO baud
+5. 24V + 250Ω + multimetre ile mA doğrulama; R_SET=1.2k transfer fonksiyonu teyidi
+**MANUAL-2 KAPANDI** (değerler manual_steps.md'de). **Tek açık nokta:** saat kaynağı — firmware iç MSIS+LSI kullanıyor, board'da HSE 24MHz + LSE 32.768kHz var; BLE/timing sorunluysa bring-up'ta CubeMX ile HSE'ye geçilir (manuel).
+Tüm flash/debug detayı: `mcu_prog_flash_debug.md`. Bring-up planı: `~/.claude/plans/yar-n-donan-m-elimde-olacak-wondrous-sifakis.md`.
 
 ## Next Recommended Task
 
@@ -105,9 +111,13 @@ Tüm flash/debug detayı: `mcu_prog_flash_debug.md`.
 | ~~Git yok~~ | — | KAPANDI: CARD-0.3 (main, e2120fe) |
 | ~~ADC rank kanal bug'ı~~ | — | KAPANDI: MANUAL-3 regenerate (4 kanal doğru atandı) |
 | PIN_MAPPING.xlsx AF kolonunda hatalar olabilir (IN13/14 örneği) | LOW | Pin haritası net isimleri için otorite; AF/kanal no'ları CubeMX/datasheet'ten teyit edilir |
+| ~~ADC DMA yanlış konfig → boot'ta hang (OVR storm + DMA TC storm + tek-tarama donma)~~ | — | **KAPANDI (2026-06-23):** MANUAL-7, 3 CubeMX iterasyonu. Nihai: Continuous=DISABLE + DMA_ONESHOT + DMA Mode=NORMAL + DestInc=INCREMENTED. Canlı doğrulandı |
 | INT_B data-ready gating: pin beklenmedik HIGH kalırsa ölçüm durur | MEDIUM | MANUAL-4 ilk test maddesi; gerekirse timeout fallback eklenir |
+| SWD verify 8MHz'de mismatch veriyor (jumper kablo/2.85V VDD) | LOW | freq=4000 (gerçek 3.3MHz) + mass erase ile flash güvenilir; flash.bat'a freq eklenebilir |
+| ST-Link FW (V3J8M3B5S1) gdbserver 7.13 için eski → live GDB breakpoint çalışmıyor | LOW | HOTPLUG bellek/register okuması teşhis için yeterli; breakpoint gerekirse ST-Link FW upgrade |
 | TMP108 ortam alert'i ve PC1 diyot kanalı eksik | MEDIUM | CARD-1.2/1.3/1.4 |
-| TPS3851 CWD penceresi 100 ms kick'i içermezse reset döngüsü | HIGH | MANUAL-2 m.6 CWD teyidi → WDT_KICK_PERIOD_MS ayarı |
+| ~~TPS3851 CWD penceresi 100 ms kick'i içermezse reset döngüsü~~ | — | KAPANDI (2026-06-22): ~1600 ms pencere, 100 ms kick içeride; programlamada jumper ile WDT disable |
+| Firmware HSE/LSE kristallerini kullanmıyor — iç MSIS RC0 + LSI (X400 24MHz/X401 32.768kHz board'da var, .ioc'da seçili değil) | MEDIUM | Karar bring-up'a ertelendi (2026-06-22): MSIS ~%1; BLE 115200/timing sorunluysa CubeMX'te HSE+LSE'ye geç (manuel `.ioc`) + regenerate. HCLK SWO için GDB ile canlı okunacak |
 | ~~cal_save flash erase watchdog starvation~~ | — | KAPANDI: CARD-6.1 erase öncesi besleme |
 | CubeMX regenerate USER CODE dışı kayıplar | MEDIUM | .ioc değişiklikleri manuel + regenerate sonrası diff |
 | FDC I2C adresi 0x2A/0x2B belirsiz | LOW | CARD-1.1 çift deneme + MANUAL-2 |
@@ -117,9 +127,9 @@ Tüm flash/debug detayı: `mcu_prog_flash_debug.md`.
 | # | Soru | Blocking? | Varsayılan / Yanıt |
 |---|---|---|---|
 | Q1 | ~~Kompanzasyon sıcaklık kaynağı?~~ | — | **KAPANDI:** 1N4148 diyotlar (kullanıcı teyidi); TMP108 yalnız ortam + 60 °C alert |
-| Q2 | Diyot bias direnci/akımı (V_f25 varsayılanı için)? | Hayır (varsayılanla ilerlenebilir) | MANUAL-2 şema teyidi |
+| Q2 | ~~Diyot bias direnci/akımı (V_f25 varsayılanı için)?~~ | — | **KAPANDI (2026-06-22):** 3.3V/27kΩ → ~100µA; V_f25 600mV'den biraz düşük, kalibrasyonla ayarlanır |
 | Q3 | git init onayı? | CARD-0.3 için evet | Kullanıcı kararı |
-| Q4 | X400/X401 kristal designator çelişkisi (BOM 24 MHz vs pin map 32.768 kHz) | Hayır | MANUAL-2 |
+| Q4 | ~~X400/X401 kristal designator çelişkisi (BOM 24 MHz vs pin map 32.768 kHz)~~ | — | **KAPANDI (2026-06-22):** X400=24MHz HSE, X401=32.768kHz LSE (ikisi de var). Firmware şu an MSIS+LSI; HSE kararı bring-up'ta |
 | Q5 | BLE yazma koruması: PIN mi menü-unlock mu? | Hayır | D4 kapsamında v1: sabit PIN |
 
 ## Manual Steps Waiting

@@ -123,9 +123,9 @@ bool fdc2214_init(void)
      *   DRIVE_CURRENT — orta-yüksek (0x8C00 ≈ 0.236 mA başlangıç)
      */
     const uint16_t RCOUNT       = 0xFFFFu;
-    const uint16_t SETTLECOUNT  = 0x000Au;
+    const uint16_t SETTLECOUNT  = 0x0400u;  /* bring-up: oturma suresi artirildi (~410us) */
     const uint16_t CLKDIV       = 0x1001u;   /* single-ended → FIN_SEL=1 */
-    const uint16_t DRIVE        = 0x8C00u;
+    const uint16_t DRIVE        = 0xF800u;  /* bring-up: IDRIVE=31 max (<50mV osilasyon icin) */
 
     /* CH2 */
     if (!fdc_write16(REG_RCOUNT_CH2,        RCOUNT))      return false;
@@ -154,7 +154,7 @@ bool fdc2214_init(void)
      *   bit 12 RP_OVERRIDE_EN=1, bit 11 SENSOR_ACTIVATE=1 (low-power),
      *   bit 10 reserved=1, bit 9 REF_CLK_SRC=1 (external X403),
      *   bit 7 INTB_DIS=0 (INT_B enabled), bit 0 reserved=1 */
-    if (!fdc_write16(REG_CONFIG, 0x1E01u)) return false;
+    if (!fdc_write16(REG_CONFIG, 0x1601u)) return false;  /* bring-up: SENSOR_ACTIVATE_SEL=0 (full-current activation) */
 
     s_errflag = false;
     return true;
@@ -163,7 +163,7 @@ bool fdc2214_init(void)
 bool fdc2214_start(void)
 {
     /* MUX_CONFIG'i tekrar yaz; CONFIG'i write etmek conversion'u başlatır.  */
-    return fdc_write16(REG_CONFIG, 0x1E81u);
+    return fdc_write16(REG_CONFIG, 0x1681u);  /* bring-up: SENSOR_ACTIVATE_SEL=0 (full-current activation) */
 }
 
 bool fdc2214_read_ch2(uint32_t *raw) { return fdc_read_ch_raw28(2, raw); }

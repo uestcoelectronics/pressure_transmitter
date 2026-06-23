@@ -318,7 +318,8 @@ void pressure_app_loop(void)
 
         /* INT_B data-ready değilse bu tikte okuma atlanır (son değer korunur;
            conversion ~100 ms olduğundan genelde hazırdır)                    */
-        if (!errb_now && fdc2214_data_ready()) {
+        (void)errb_now;
+        if (1) {  /* BRING-UP TESTI: read-gating bypass (PA1 ERRB hayalet pin suphesi) */
             if (fdc2214_read_delta(&dC)) got_data = true;
             else                         i2c_fail = true;
         }
@@ -377,6 +378,9 @@ void pressure_app_loop(void)
             if (fdc2214_has_error() == false) fdc2214_start();
             (void)tmp108_init();
         }
+
+        /* BRING-UP: DAC override (loop transfer karakterizasyonu) — en son */
+        loop_dbg_apply();
     }
 
     /* ---- Ortam sıcaklığı (TMP108, her 1000 ms) ---- */

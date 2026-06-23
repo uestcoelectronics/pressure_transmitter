@@ -5,6 +5,7 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 
 ## Anahtar Mimari Gerçekler
 - Bare-metal superloop (RTOS yok), zaman dilimli: buton 5 ms / sensör+ADC 100 ms / ekran 250 ms / watchdog kick 100 ms
+- **Saat kaynağı (2026-06-22 bulgu):** main.c SystemClock_Config = iç **MSIS RC0** (SYSCLK, AHB÷2) + iç **LSI** (low-speed). Board'da **HSE 24MHz (X400) + LSE 32.768kHz (X401)** VAR ama .ioc'da seçili DEĞİL → boşta. Karar bring-up'a ertelendi: MSIS ~%1; BLE 115200/timing sorunluysa CubeMX'te HSE+LSE'ye geç (manuel .ioc). HCLK değeri SWO baud için GDB ile canlı okunacak (SystemCoreClock)
 - App katmanı `Firmware/App/` — 8 modül tam yazılı; `Core/` CubeMX üretimi (yalnızca USER CODE blokları düzenlenir)
 - Build: `cd Firmware && cmake --preset Debug && cmake --build build/Debug` (Ninja + arm-none-eabi-gcc 15.2.1)
 - Build temiz (CARD-0.1: flash yazımı DOUBLEWORD'e geçirildi; U3 HAL'de QUADWORD yok)
@@ -14,7 +15,7 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 - **Sıcaklık mimarisi (KULLANICI TEYİTLİ):** Kompanzasyon = PC0/PC1 **1N4148 diyotlar** (sensör içi; datasheet: `__TI_DATASHEETS\1N914-D.PDF` 1N4x48 dahil) — temp_diode.c modeli doğru, PC1 kanalı eklenecek. **TMP108 = yalnız ortam sıcaklığı**, T_HIGH=60 °C alert → FLT_TEMP# (PB5) kesmesi. TMP108 kompanzasyonda KULLANILMAZ, failover da yapılmaz
 - LCD: BDS154S10Z0TG01 = **ST7789V** 240×240 SPI (datasheet teyitli) — lcd400.c uyumlu
 - BLE: DL-CC2340-B (datasheet C19273634.pdf), 115200 8N1, AT "AT+<cmd> p1,p2"→OK/ERROR, URC +CONNOK/+DISCONN. Pinler: DIO20→PC10(RX), DIO22←PC11(TX), MODE/PB12(wake=HIGH), AUX/PB0(data-ready), RESET/PA15(OD), PWR/PC2. CARD-5.1 taşıma katmanı (ble_uart.c) hazır; USART3 IRQ app'ten enable (.ioc'de kapalı)
-- Watchdog: TPS3851H30 (windowed, düşen-kenar) WDI=PC3 + IWDG ~256 ms. CARD-6.1: wdt_feed_raw() koşullu besleme (güvenlik görevi canlı + 400 ms), cal_save erase öncesi besler. tWD CWD'ye bağlı (std 0.7ms-3.23s/ext 62ms-77s) — KICK 100 ms pencereye düşmeli, CWD şema teyidi MANUAL-2 m.6
+- Watchdog: TPS3851H30 (windowed, düşen-kenar) WDI=PC3 + IWDG ~8.2 s (DÜZELTME 2026-06-22: Prescaler64/Reload4095/Window4095 @LSI~32kHz → 64×4096/32000≈8.19s; eski "~256ms" notu hatalıydı. USE_IWDG=1 tanımlı → wdt_feed_raw IWDG'yi besliyor. NOT: IWDG dahili+bağımsız, jumper'dan ETKİLENMEZ — ama ~8.2s timeout boot'taki 500ms gecikmeyi rahat kapsar, reset-loop yok). CARD-6.1: wdt_feed_raw() koşullu besleme (güvenlik görevi canlı + 400 ms), cal_save erase öncesi besler. tWD CWD'ye bağlı (std 0.7ms-3.23s/ext 62ms-77s) — KICK 100 ms pencereye düşmeli, CWD şema teyidi MANUAL-2 m.6
 
 ## Kullanıcı Tercihleri
 - İletişim Türkçe; teknik terimler İngilizce kalabilir
@@ -47,7 +48,13 @@ STM32U385RGT7 basınç transmitteri, **4-20 mA konfig** firmware'i: FDC2214 kapa
 - FDC2214: adres otomatik tespit (0x2A/0x2B), ERRB/INT_B polling, SD+CLK_EN sıralaması app'te
 
 ## Önemli Varsayımlar (onaylanmamış)
-- NAMUR NE43 alarm seviyeleri (D3); BLE AT+transparent+CRC çerçeve (D4); menü timeout 60 s (D5); 1N4148 V_f25≈600 mV @ ~1 mA / TC≈−2 mV/°C (D6 — bias direnci MANUAL-2); TMP108 histerezis 60/55 °C, alarmda ölçüm sürer (D8)
+- NAMUR NE43 alarm seviyeleri (D3 — **TEYİT 2026-06-22**); BLE AT+transparent+CRC çerçeve (D4); menü timeout 60 s (D5); 1N4148 TC≈−2 mV/°C (D6); TMP108 histerezis 60/55 °C, alarmda ölçüm sürer (D8)
+
+## MANUAL-2 TEYİT (2026-06-22, tasarımcı)
+- **XTR111 R_SET = 1.2 kΩ (R409), divider yok** → firmware ile tam uyumlu (I[mA]=10·V_SET/R_SET=V_SET×8.333, DAC1_OUT1 12-bit/3.3V)
+- **Diyot bias = 3.3V / 27 kΩ → ~100 µA** (varsayım ~1mA idi); gerçek V_f25, 600mV'den biraz düşük olur → kalibrasyonla ayarlanır (geçerlilik 200–1000mV kapsar)
+- **FDC2214 ADDR=GND → 0x2A** (firmware zaten otomatik tespit); **TMP108 0x48-0x4B tarama** korunuyor
+- **TPS3851 CWD ~1600 ms pencere** → 100ms kick içeride, sorun yok; programlamada **jumper ile WDT disable** (üretimde takılı) → ilk flash'ta reset-loop riski YOK
 
 ## Flash/Debug (kurulu — bkz. mcu_prog_flash_debug.md)
 - Flash: Claude yapar — STM32_Programmer_CLI v2.21 (`mode=UR -d ELF --verify -rst`)

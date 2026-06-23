@@ -2,6 +2,92 @@
 
 > Append-only. Yeni girişler en alta eklenir.
 
+## 2026-06-22 | Readiness | Task: HW-READY-01
+
+**Task ID:** HW-READY-01
+**Type:** Donanım bring-up hazırlığı + MANUAL-2 kapanışı
+**Status:** Complete (kod değişikliği YOK — yalnız doğrulama + doküman)
+
+**Yapılanlar:**
+- **Toolchain fiziksel doğrulaması:** STM32_Programmer_CLI v2.21.0 (çalışıyor), ST-LINK_gdbserver 7.13.0, arm-none-eabi-gdb + nm 15.2.1, ELF (2.2 MB, 661 sembol — cal_save/dbg_swo_init/ADC_CHANNEL_LUT mevcut), tools/ 4 script, ST-Link USB sürücü paketi (stsw-link009_v3) — hepsi hazır. Temiz rebuild: `ninja: no work to do` (ELF güncel).
+- **MANUAL-2 KAPANDI** (tasarımcı/kullanıcı değerleri verdi):
+  - #1 Diyot bias 3.3V/27kΩ → ~100µA (varsayım ~1mA idi); V_f25 600mV'den biraz düşük olur → kalibrasyonla ayarlanır, geçerlilik aralığı kapsıyor. Kod değişmez.
+  - #2 FDC2214 ADDR=GND → 0x2A (firmware otomatik tespit). ✅
+  - #3 TMP108 tarama korunuyor (0x48–0x4B). ✅
+  - #4 XTR111 R_SET=1.2kΩ (R409), divider yok — firmware ile **TAM UYUMLU** (V_SET×8.333). ✅
+  - #5 **BULGU:** X400=24MHz HSE + X401=32.768kHz LSE board'da var ama firmware iç MSIS RC0 + LSI kullanıyor (.ioc'da HSE/LSE seçili değil). Karar **bring-up'a ertelendi**: ilk flash MSIS ile; BLE 115200/timing sorunluysa CubeMX'te HSE+LSE'ye geç (manuel) + regenerate.
+  - #6 TPS3851 CWD ~1600ms pencere; 100ms kick içeride. ✅ Programlamada jumper ile WDT disable → reset-loop riski yok.
+  - #7 Boot/alarm (3.6/3.8/20.5/21.0 mA, boot loop-disabled) doğrulandı. ✅
+
+**Files Changed (doküman):** mcu_prog_manual_steps.md, mcu_prog_state.md, mcu_prog_memory.md, mcu_prog_changelog.md, mcu_prog_tracker.html
+
+**Validation:** Seviye 2 (build PASS, ELF güncel). Donanım doğrulaması (seviye 3) yarın ST-Link ile.
+
+**NEXT:** Kullanıcı ST-Link + WDT-disable jumper takar → probe_test → flash → SWO/GDB bring-up (CARD-7.1).
+
+## 2026-06-23 | Bring-up | Task: CARD-7.1 (kısmi — ADC DMA bug yakalandı)
+
+**Task ID:** CARD-7.1 (donanım bring-up, devam ediyor)
+**Type:** Donanım flash + canlı debug teşhisi
+**Status:** BLOCKED → MANUAL-7 (CubeMX ADC DMA düzeltmesi) bekleniyor
+
+**Yapılanlar:**
+- **İlk flash:** probe OK (STM32U3xx, 1MB, ST-LINK V3SET, VDD 2.85V). İlk denemede verify mismatch (8MHz SWD); **freq=4000 (gerçek 3.3MHz) + mass erase ile başarılı** → verify PASS. SWD'yi düşük tutmak gerekiyor (jumper kablo/marjinal VDD).
+- **HCLK = 48 MHz** doğrulandı (SystemCoreClock@0x20000000=0x02DC6C00; MSIS 96MHz÷2). SWO baud için bu değer.
+- **BUG (kanıtlı, HOTPLUG canlı debug):** Firmware ~860 ms'de **ADC1_IRQHandler'da kilitlendi** (uwTick dondu). ADC1->ISR=0x101F **OVR=1**, IER OVRIE=1, CFGR CONT=1/**DMNGT=00**. Kök neden: adc.c `ConversionDataManagement=ADC_CONVERSIONDATA_DR` (continuous mode'da ADC veriyi DMA'ya vermiyor) + DMA DestInc=FIXED/Mode=NORMAL → overrun fırtınası, ADC1 IRQ pri(0,0) → SysTick açlığı. adc_buf=0 (DMA hiç çalışmadı).
+- **Düzeltme MANUAL-7'ye yazıldı:** CubeMX ADC1 "Conversion Data Management Mode" = DMA Circular Mode + regenerate. Sonra Claude doğrular + reflash.
+- ST-Link FW (V3J8M3B5S1) gdbserver 7.13 için eski → live GDB breakpoint için FW upgrade gerekebilir; ama HOTPLUG bellek/register okuması teşhis için yetti.
+
+- **LCD teşhisi (canlı register):** Firmware tarafı TEMİZ — PA10 LCD_PWR_ON=HIGH, PA8 backlight TIM1_CH1 PWM çalışıyor (CEN=1, MOE=1, CC1E=1, ARR=99/CCR1=59 → %60), DISPON gönderildi, splash yazıldı. Ekran boşsa neden **fiziksel** (backlight devresi / SPI kablo / besleme). VDD=2.85V (3.3V için düşük) — besleme şüphesi. **Kullanıcı: "sorunu buldum, donanımsal halledeceğim" (2026-06-23).**
+
+**Files Changed:** yok (kod değişikliği YOK — teşhis + doküman). ADC düzeltmesi CubeMX'te kullanıcıda; LCD/güç donanımda kullanıcıda.
+
+**Validation:** Seviye 3 kısmi — flash+verify PASS, ama firmware boot'ta hang (ADC bug). Düzeltme sonrası tam bring-up.
+
+**AÇIK İŞLER (firmware'in çalışması için):** (1) MANUAL-7 CubeMX ADC DMA Circular → reflash [Claude doğrular]. (2) LCD/güç donanım [kullanıcı].
+
+## 2026-06-23 | Bring-up | Task: CARD-7.1 (ADC bug ÇÖZÜLDÜ — firmware canlı)
+
+**Task ID:** CARD-7.1 (devam)
+**Type:** Donanım flash + canlı debug
+**Status:** ADC zinciri TAMAM; firmware tam superloop'ta. Sensör bağlantısı kullanıcıda (güç kesip bağlayacak).
+
+**ADC bug fix süreci (3 CubeMX iterasyonu, hepsi canlı HOTPLUG ile doğrulandı):**
+1. İlk regenerate: ConversionDataManagement DR→DMA_CIRCULAR + DestInc FIXED→INCREMENTED. Sonuç: OVR çözüldü AMA ContinuousConvMode=ENABLE yüzünden DMA TC kesme fırtınası (VECTACTIVE=45=GPDMA1_Ch0) → yine hang.
+2. İkinci regenerate: ContinuousConvMode ENABLE→DISABLE + ConversionDataManagement→DMA_ONESHOT. Sonuç: storm bitti, uwTick akıyor, AMA DMA hâlâ circular kaldığı için ADC tek tarama yapıp dondu (adc_buf 5 örnekte birebir aynı, s_adc_done=0).
+3. Üçüncü regenerate: DMA Settings CH0 Circular Mode ENABLE→DISABLE. Sonuç: **TAM ÇÖZÜLDÜ** — adc_buf her 100ms taze (diyot kanallarında jitter 1,2,1,2.. kanıtlı), VCC_FB=1930 stabil, uwTick akıyor, ICSR=0 thread mode.
+
+**Nihai doğru ADC konfig:** ContinuousConvMode=DISABLE, ConversionDataManagement=ADC_CONVERSIONDATA_DMA_ONESHOT, DMA Mode=NORMAL (non-circular), SrcInc=FIXED, DestInc=INCREMENTED, software trigger, 4 kanal. Flash 68.7KB.
+
+**I2C bus doğrulandı:** TMP108 s_addr7=0x48 (bulundu), FDC s_addr7=0x2A. I2C1 peripheral + hat çalışıyor.
+
+**Açık (sensör bağlanınca netleşecek):** FDC s_errflag=1/s_disp_p=0 (sensörsüz → beklenen); loop s_fault=1 + VDD 2.85V düşük (kendi 24V beslemesi gerekli).
+
+**Flash güvenilirlik notu:** Tüm flash'lar freq=4000 (gerçek ~3.3MHz) + mass erase ile yapıldı; 8MHz'de verify mismatch oluyordu.
+
+**Validation:** Seviye 3 — flash+verify PASS + canlı çalışan firmware doğrulandı (ADC zinciri). Gerçek ölçüm doğrulaması sensör+güç sonrası.
+
+**NEXT:** Kullanıcı sensörleri + 24V beslemeyi bağlar → "hazırım" → probe (VDD kontrol) + canlı FDC/diyot/loop/LCD izleme.
+
+## 2026-06-23 | Bring-up | Task: CARD-7.1 (sensör + loop kalibrasyonu)
+
+**Type:** Donanım bring-up — canlı debug + firmware düzeltmeleri
+**Status:** FDC okuyor, loop enable + 4-20mA kalibre. Kalan: ERRB kalıcı fix, basınç kalibrasyonu, debug scaffolding temizliği.
+
+**Yapılanlar (hepsi canlı doğrulandı):**
+1. **LCD:** firmware tarafı temiz; ekran sorunu donanımdı (kullanıcı çözdü, splash görünüyor).
+2. **FDC2214 okuma:** Donanım tarafında tank seri-kayıp/bağlantı düzeltildi (kullanıcı; L=6.8µH/C=135pF/f≈5.25MHz). Firmware: drive max (IDRIVE=31), SETTLECOUNT=0x400, SENSOR_ACTIVATE full-current. **BULGU: FDC2214'ün ERRB pini YOK** (sadece INTB+SD); firmware okumaları PA1 "FDC_ERRB" üzerinden geçitliyordu → hayalet bloklama. **Geçici bypass** (pressure_app `if(1)`) ile okuma açıldı → s_disp_dc canlı değişiyor. **KALICI FIX GEREKLİ:** PA1 gerçekte ne (FDC INTB hangi pinde?), gate'i STATUS/data-MSB hata bitlerine taşı.
+3. **Loop enable (FLT glitch):** Fault kaynağı diag değil (s_loopen_bad=0), PA6 EXTI idi. **XTR111 güç-açılışında FLT'yi (PA6) anlık LOW yapıyor** → EXTI fault latch → PB2 LOW → retry → döngü. **FIX:** FLT settling mask (`FLT_SETTLE_MS=100`, `loop_on_flt_edge` + settling-sonrası seviye kontrolü; güvenlik korundu). Sonuç: PB2 HIGH stabil, s_fault=0.
+4. **4-20mA çıkış kalibrasyonu:** Feedback (INA190) DOĞRU (multimetre=s_meas). Komut tarafı şaşıyordu. DAC doğru (kod→V_SET lineer). XTR111 zincirinde **~-0.84mA offset** var. 2-nokta uç-trim ölçümü: **kod 699→4.00mA, kod 3011→20.00mA** → `ma_to_dac_code`: **kod = 144.5*mA + 121** (LOOP_CAL_CODE_PER_MA/OFFSET). Doğrulama: 4/12/20 mA hepsi tam. Eski offset'siz V_SET modeli değişti.
+
+**Files Changed:** App/Src/fdc2214.c (drive/settle/config), App/Src/pressure_app.c (ERRB bypass + loop_dbg_apply çağrısı), App/Src/xtr111_loop.c + Inc/xtr111_loop.h (FLT mask + cal + debug hook), Core/Src/main.c (EXTI→loop_on_flt_edge), Core/Src/adc.c + .ioc (one-shot DMA — daha önce).
+
+**Geçici/bring-up scaffolding (üretimden önce temizlenecek):** pressure_app ERRB `if(1)` bypass; g_loop_dbg_dac/g_loop_dbg_ma + loop_dbg_apply; FDC drive/settle bring-up değerleri (tune edilebilir).
+
+**Validation:** Seviye 4 (canlı donanım) — ADC, FDC okuma, loop enable, 4-20mA çıkış kalibrasyonu multimetre ile doğrulandı. Basınç kalibrasyonu + temp henüz YOK.
+
+**NEXT:** (1) Basınç kalibrasyonu (FDC ham → bar, zero/span — bilinen basınç uygula). (2) ERRB kalıcı fix (PA1 gerçeği). (3) TEMP_MEAS_ON (diyot bias). (4) Debug scaffolding temizliği.
+
 ## 2026-06-12 | Bootstrap | Task: BOOTSTRAP-01
 
 **Task ID:** BOOTSTRAP-01

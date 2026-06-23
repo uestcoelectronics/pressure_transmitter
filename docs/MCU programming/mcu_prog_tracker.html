@@ -79,7 +79,7 @@ const D = {
   workspacePath: "C:\\PressureTransmitter\\docs\\MCU programming",
   branch:        "main",
   lastCommit:    "defb6d1",
-  lastUpdated:   "2026-06-13",
+  lastUpdated:   "2026-06-22",
   implementationAllowed: true,
   validationLevel: 2,
 
@@ -118,24 +118,24 @@ const D = {
   openRisks: [
     { risk: "PIN_MAPPING.xlsx AF kolonunda hatalar olabilir (IN13/14 örneği)", severity: "LOW", mitigation: "Kanal/AF no'larında CubeMX + datasheet otorite" },
     { risk: "INT_B data-ready gating: pin HIGH kalırsa ölçüm durur", severity: "MEDIUM", mitigation: "MANUAL-4 ilk test maddesi; gerekirse timeout fallback" },
-    { risk: "TPS3851 CWD penceresi 100ms kick'i içermezse reset döngüsü", severity: "HIGH", mitigation: "MANUAL-2 m.6 CWD teyidi → WDT_KICK_PERIOD_MS ayarı" },
+    { risk: "Firmware HSE/LSE kristallerini kullanmıyor — iç MSIS RC0 + LSI çalışıyor (X400 24MHz / X401 32.768kHz board'da var ama .ioc'da seçili değil)", severity: "MEDIUM", mitigation: "Karar bring-up'a ertelendi (2026-06-22): MSIS ~%1; BLE 115200/timing sorunluysa CubeMX'te HSE+LSE'ye geç (manuel) + regenerate" },
     { risk: "TMP108 ortam alert'i ve PC1 diyot kanalı eksik",    severity: "MEDIUM", mitigation: "CARD-1.2/1.3/1.4" },
-    { risk: "TPS3851 pencere ihlali → reset döngüsü",            severity: "MEDIUM", mitigation: "CARD-6.1 zamanlama analizi" },
+    { risk: "TPS3851 pencere ihlali → reset döngüsü",            severity: "LOW", mitigation: "KAPANDI (MANUAL-2 m.6, 2026-06-22): ~1600ms pencere, 100ms kick içeride; programlamada jumper ile WDT disable" },
     { risk: "cal_save flash erase sırasında IWDG reset",         severity: "MEDIUM", mitigation: "CARD-6.1 kick stratejisi" },
     { risk: "CubeMX regenerate USER CODE dışı kayıplar",         severity: "MEDIUM", mitigation: ".ioc değişikliği manuel + diff kontrolü" },
   ],
 
   openQuestions: [
     { n: "Q1", question: "Kompanzasyon sıcaklık kaynağı?",                         blocking: false, answer: "KAPANDI: 1N4148 diyotlar (PC0/PC1); TMP108 = ortam + 60°C alert → FLT_TEMP#" },
-    { n: "Q2", question: "1N4148 bias direnci/akımı (V_f25 için)?",                blocking: false, answer: "MANUAL-2 şema teyidi; varsayılan ~600 mV @ ~1 mA" },
+    { n: "Q2", question: "1N4148 bias direnci/akımı (V_f25 için)?",                blocking: false, answer: "KAPANDI (2026-06-22): 3.3V/27kΩ → ~100µA; V_f25 600mV'den biraz düşük olur, kalibrasyonla ayarlanır" },
     { n: "Q3", question: "git init onayı?",                                        blocking: true,  answer: "Kullanıcı kararı (MANUAL-6)" },
-    { n: "Q4", question: "X400/X401 kristal designator çelişkisi",                 blocking: false, answer: "MANUAL-2; BOM=24 MHz, pin map=32.768 kHz" },
+    { n: "Q4", question: "X400/X401 kristal designator çelişkisi",                 blocking: false, answer: "KAPANDI (2026-06-22): X400=24MHz HSE, X401=32.768kHz LSE (ikisi de var). Firmware şu an MSIS+LSI — HSE kararı bring-up'ta" },
     { n: "Q5", question: "BLE yazma koruması yöntemi",                             blocking: false, answer: "v1: sabit PIN (varsayılan)" },
   ],
 
   manualSteps: [
     { n: 1, title: "Donanım test düzeneği (ST-Link + 24V + 250Ω)", blocking: false, tool: "Donanım",    status: "waiting" },
-    { n: 2, title: "Şema teyitleri (diyot bias, ADDR, R_SET, kristaller)", blocking: true, tool: "PDF/Altium", status: "waiting" },
+    { n: 2, title: "Şema teyitleri (diyot bias 3.3V/27k, ADDR=GND/0x2A, R_SET=1.2k✓, X400=HSE/X401=LSE, CWD 1600ms)", blocking: true, tool: "PDF/Altium", status: "complete" },
     { n: 5, title: "DL-CC2340-B datasheet indir (C19273634.pdf)",  blocking: false, tool: "Browser",     status: "complete" },
   ],
 
@@ -174,9 +174,10 @@ const D = {
     { date: "2026-06-13", id: "CARD-5.1",      type: "Execute",    summary: "BLE taşıma: USART3 IT RX ring + güç/reset/mode sırası + AUX. USART3 IRQ app'ten enable (.ioc değişmedi). Datasheet 115200 uyumlu. Build PASS." },
     { date: "2026-06-13", id: "CARD-5.2",      type: "Execute",    summary: "BLE protokol: AT init (advertise PT910) + CRC16 çerçeve (GET_MEAS/GET/SET_PARAM/SAVE/INFO/UNLOCK). TÜM KOD KARTLARI TAMAM. Build PASS." },
     { date: "2026-06-13", id: "DBG-SWO",       type: "Execute",    summary: "SWO/ITM canlı telemetri (1 Hz P,T,I,ST; SWV yoksa no-op) + flash/debug altyapısı (Claude flash+GDB+SWO yapabilir, ST-Link takılı olmak şartıyla)." },
+    { date: "2026-06-22", id: "HW-READY-01",   type: "Readiness",  summary: "Donanım bring-up hazırlığı: toolchain doğrulandı (Programmer v2.21 + gdbserver 7.13 + gdb/nm 15.2.1 + ELF 661 sembol). MANUAL-2 KAPANDI (tasarımcı değerleri): R_SET=1.2k firmware ile uyumlu✓, FDC ADDR=GND/0x2A✓, diyot bias 3.3V/27k(~100µA), CWD 1600ms✓, boot/alarm✓. BULGU: firmware HSE/LSE yerine iç MSIS+LSI kullanıyor — karar bring-up'a ertelendi. WDT programlamada jumper ile disable → reset-loop riski yok." },
   ],
 
-  nextPrompt: "(donanım gelince) /ease-me execute CARD-7.1  — ST-Link tak, MANUAL-2 teyitlerini paylaş; flash+debug Claude'da",
+  nextPrompt: "(donanım geldi) ST-Link + WDT-disable jumper tak, 'ST-Link takılı' de → Claude: probe_test → flash → SWO/GDB bring-up (CARD-7.1). MANUAL-2 kapandı; tek açık nokta saat kaynağı (HSE) kararı bring-up'ta.",
 };
 </script>
 
