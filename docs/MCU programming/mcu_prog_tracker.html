@@ -113,6 +113,7 @@ const D = {
     { id: "CARD-5.2", title: "BLE konfigürasyon protokolü",            status: "done",        blockedBy: null },
     { id: "CARD-6.1", title: "TPS3851 pencere teyidi + WD stratejisi", status: "done",        blockedBy: null },
     { id: "CARD-6.2", title: "Temel tanılar (diag modülü)",            status: "done",        blockedBy: null },
+    { id: "CARD-3.3", title: "Ekranda metrik float değerleri (nano-printf %f fix)", status: "done", blockedBy: null },
   ],
 
   openRisks: [
@@ -149,9 +150,9 @@ const D = {
   ],
 
   lastChangedFiles: [
-    "Firmware/App/Inc+Src/dbg_swo — YENİ: SWO/ITM 1 Hz canlı telemetri (DBG-SWO)",
-    "docs/MCU programming/tools/ + mcu_prog_flash_debug.md — flash/debug altyapısı",
-    "Firmware/App/Inc+Src/ble_proto — AT init + CRC16 çerçeve protokol (CARD-5.2)",
+    "Firmware/App/Src/pressure_app.c — CARD-3.3 ekran metrik fix + CARD-7.1 TEMP_MEAS_ON (PB4) diyot bias enable",
+    "Firmware/App/Inc/bsp_pins.h — TEMP_MEAS_ON alias (PB4, eski TEST_MODE)",
+    "Firmware/App/Src/{fdc2214,xtr111_loop}.c + main.c — CARD-7.1 bring-up fix'leri",
   ],
 
   changelog: [
@@ -175,9 +176,12 @@ const D = {
     { date: "2026-06-13", id: "CARD-5.2",      type: "Execute",    summary: "BLE protokol: AT init (advertise PT910) + CRC16 çerçeve (GET_MEAS/GET/SET_PARAM/SAVE/INFO/UNLOCK). TÜM KOD KARTLARI TAMAM. Build PASS." },
     { date: "2026-06-13", id: "DBG-SWO",       type: "Execute",    summary: "SWO/ITM canlı telemetri (1 Hz P,T,I,ST; SWV yoksa no-op) + flash/debug altyapısı (Claude flash+GDB+SWO yapabilir, ST-Link takılı olmak şartıyla)." },
     { date: "2026-06-22", id: "HW-READY-01",   type: "Readiness",  summary: "Donanım bring-up hazırlığı: toolchain doğrulandı (Programmer v2.21 + gdbserver 7.13 + gdb/nm 15.2.1 + ELF 661 sembol). MANUAL-2 KAPANDI (tasarımcı değerleri): R_SET=1.2k firmware ile uyumlu✓, FDC ADDR=GND/0x2A✓, diyot bias 3.3V/27k(~100µA), CWD 1600ms✓, boot/alarm✓. BULGU: firmware HSE/LSE yerine iç MSIS+LSI kullanıyor — karar bring-up'a ertelendi. WDT programlamada jumper ile disable → reset-loop riski yok." },
+    { date: "2026-06-23", id: "CARD-7.1",      type: "Bring-up",   summary: "Donanım bring-up (canlı): ADC 4 kanal ✓ (DMA one-shot fix), FDC2214 okuyor ✓, loop enable ✓ (FLT glitch maskesi), 4-20mA çıkış kalibre ✓ (kod=144.5·mA+121; 4/12/20 multimetre tam). Kalan: basınç kalibrasyonu, ERRB kalıcı fix, debug scaffolding temizliği." },
+    { date: "2026-06-25", id: "CARD-3.3",      type: "Execute",    summary: "Ekranda metrik float değerleri görünmüyordu (nano-printf %f desteklemiyor). pressure_app.c'de 10 %f çağrısı integer-ölçekli fmt_fixed helper'ına çevrildi. Build PASS (FLASH 69224 B); .map'te float-printf linklenmedi. Donanım görsel teyit MANUAL." },
+    { date: "2026-06-25", id: "CARD-7.1",      type: "Bring-up",   summary: "TEMP_MEAS_ON diyot bias enable: PB4 (pin haritasında TEST_MODE etiketli, tasarımcı teyidi gerçekte TEMP_MEAS_ON) app'te Output PP+HIGH. Register doğrulandı; ama PC0/PC1 rail'e çıkıyor → diyot açık devre (HW kullanıcıda). Basınç teşhisi: boşta ~0.5 bar = sıfır offset (iki LC tankı farklı, normal); zero-cal canlı kanıtlandı. Kullanıcı menüden zero-cal yapacak." },
   ],
 
-  nextPrompt: "(donanım geldi) ST-Link + WDT-disable jumper tak, 'ST-Link takılı' de → Claude: probe_test → flash → SWO/GDB bring-up (CARD-7.1). MANUAL-2 kapandı; tek açık nokta saat kaynağı (HSE) kararı bring-up'ta.",
+  nextPrompt: "CARD-3.3 kod+build tamam. Kullanıcı ST-Link bağlayınca → flash.bat (freq=4000 + mass erase) → NORMAL/sensör/loop ekranlarında sayısal değerlerin doğru göründüğünü görsel teyit. Sonra CARD-7.1 kalanı: basınç kalibrasyonu, ERRB kalıcı fix, debug scaffolding temizliği.",
 };
 </script>
 

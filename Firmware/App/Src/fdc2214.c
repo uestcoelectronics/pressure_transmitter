@@ -125,7 +125,7 @@ bool fdc2214_init(void)
     const uint16_t RCOUNT       = 0xFFFFu;
     const uint16_t SETTLECOUNT  = 0x0400u;  /* bring-up: oturma suresi artirildi (~410us) */
     const uint16_t CLKDIV       = 0x1001u;   /* single-ended → FIN_SEL=1 */
-    const uint16_t DRIVE        = 0xF800u;  /* bring-up: IDRIVE=31 max (<50mV osilasyon icin) */
+    const uint16_t DRIVE        = 0xF800u;  /* bring-up: IDRIVE=31 max — bu sensor temiz osilasyon icin gerekli (IDRIVE=20 denendi 2026-06-25: dC ±20k cop oldu, geri alindi) */
 
     /* CH2 */
     if (!fdc_write16(REG_RCOUNT_CH2,        RCOUNT))      return false;

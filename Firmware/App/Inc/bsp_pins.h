@@ -99,6 +99,14 @@ extern TIM_HandleTypeDef  htim1;
 #define TEST_MODE_PORT     TEST_MODE_GPIO_Port
 #define TEST_MODE_PIN      TEST_MODE_Pin
 
+/* PB4 — pin haritasında "TEST_MODE" etiketli; TASARIMCI TEYİDİ (2026-06-25):
+   gerçekte TEMP_MEAS_ON = 1N4148 diyot bias enable (HIGH = bias akımı açık).
+   TEST_MODE firmware'de hiçbir yerde okunmuyor → pin yeniden kullanılıyor.
+   CubeMX PB4'ü input-pulldown kuruyor; bring-up'ta app tarafında output PP'ye
+   çevrilip HIGH sürülüyor (.ioc değişmeden). Kalıcı: CubeMX'te PB4 → Output PP. */
+#define TEMP_MEAS_ON_PORT  TEST_MODE_GPIO_Port   /* GPIOB */
+#define TEMP_MEAS_ON_PIN   TEST_MODE_Pin         /* GPIO_PIN_4 */
+
 /* -------------------------------------------------------------------------- */
 /* ADC scan order — CubeMX rank sırasıyla aynı (regenerate 2026-06-12):       */
 /*   Rank 1 → ADC1_IN1   (PC0)   1N4148 kompanzasyon diyodu #1 (TMP_ADC1)     */

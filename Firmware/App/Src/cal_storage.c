@@ -129,43 +129,44 @@ bool cal_save(void)
     rec.params  = s_cal;
     rec.crc32   = crc32_calc((const uint8_t*)&rec.params, sizeof(cal_params_t));
 
-    HAL_FLASH_Unlock();
-
     FLASH_EraseInitTypeDef er = {0};
     er.TypeErase = FLASH_TYPEERASE_PAGES;
     er.Page      = CAL_PAGE_INDEX;
     er.NbPages   = 1;
-    /* Bank seçimi STM32U3'te tek bank organizasyonunda kullanılmıyor;
-       gerekirse er.Banks = FLASH_BANK_1 ekleyin. */
+    /* Bank seçimi STM32U3'te tek bank organizasyonunda kullanılmıyor.        */
 
-    /* Erase öncesi tek besleme yeterli: timer sıfırlanır, kısa erase+program
-       sonrası ana döngü ~100 ms'de normal besler. Pencereli dog'da erase
-       SONRASI ikinci besleme erken-kick (erase<tWD_MIN) riski taşır → yok.  */
-    wdt_feed_raw();
-    uint32_t page_err = 0;
-    if (HAL_FLASHEx_Erase(&er, &page_err) != HAL_OK) {
-        HAL_FLASH_Lock();
-        return false;
-    }
-
-    /* Double-word (8 byte) program — STM32U3 HAL yalnız DOUBLEWORD/BURST    */
-    /* destekler (QUADWORD U5 ailesine ait)                                  */
-    uint32_t addr = CAL_FLASH_ADDR;
-
-    /* Yuvarlat: 8'in katı olacak şekilde hizalı tampona kopyala (kalan 0xFF)*/
-    uint64_t buf[(sizeof(cal_record_t) + 7u) / 8u];
+    /* STM32U3 flash ECC'si 128-bit (quad-word) granülaritede: bir 128-bit
+       kelimenin yalnız bir doubleword'ünü yazıp diğerini boş bırakmak son
+       yazımda PGSERR üretir. Tamponu 16 baytın (2 doubleword) katına yuvarla
+       → her 128-bit kelime tam yazılır, kalan 0xFF (erased) ile doldurulur.  */
+    uint64_t buf[((sizeof(cal_record_t) + 15u) / 16u) * 2u];
     memset(buf, 0xFF, sizeof buf);
     memcpy(buf, &rec, sizeof rec);
 
-    for (uint32_t i = 0; i < sizeof(buf); i += 8) {
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
-                              addr + i,
-                              (uint32_t)((const uint8_t*)buf + i)) != HAL_OK) {
-            HAL_FLASH_Lock();
-            return false;
+    /* Erase+program+geri-okuma doğrulamasını en çok 3 kez dene. Sistematik
+       sahte PGSERR 16-bayt doldurmayla giderildi; bu döngü marjinal besleme
+       (VDD ~2.8V) kaynaklı KALAN aralıklı yazım hatalarını yutar. Tek güvenilir
+       başarı ölçütü = geri okuma (HAL bayrağına değil fiilî içeriğe güven).   */
+    for (uint32_t attempt = 0; attempt < 3u; ++attempt) {
+        HAL_FLASH_Unlock();
+        /* Önceki işlem/denemeden kalmış hata bayraklarını temizle — yoksa
+           WaitForLastOperation sahte hata döndürebilir.                       */
+        __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_SR_ERRORS | FLASH_FLAG_EOP);
+
+        wdt_feed_raw();                       /* uzun erase öncesi besle       */
+        uint32_t page_err = 0;
+        if (HAL_FLASHEx_Erase(&er, &page_err) == HAL_OK) {
+            for (uint32_t i = 0; i < sizeof(buf); i += 8) {
+                (void)HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
+                                        CAL_FLASH_ADDR + i,
+                                        (uint32_t)((const uint8_t*)buf + i));
+            }
+        }
+        HAL_FLASH_Lock();
+
+        if (memcmp((const void*)CAL_FLASH_ADDR, buf, sizeof buf) == 0) {
+            return true;
         }
     }
-
-    HAL_FLASH_Lock();
-    return true;
+    return false;
 }

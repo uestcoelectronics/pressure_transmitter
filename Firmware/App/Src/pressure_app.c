@@ -129,6 +129,27 @@ static float pressure_to_ma(float p, const cal_params_t *c)
 static float   s_disp_p  = 0.0f;
 static int32_t s_disp_dc = 0;
 
+/* nano-printf %f desteklemediği için float'ı sabit-ondalık string'e çevirir
+   (proje --specs=nano.specs ile linkleniyor, -u _printf_float yok).
+   buf'a yazar, buf'ı döndürür. force_sign true ise pozitifte de '+' basar.   */
+static const char *fmt_fixed(char *buf, size_t n, float v,
+                             uint8_t decimals, bool force_sign)
+{
+    int32_t scale = 1;
+    for (uint8_t i = 0; i < decimals; i++) scale *= 10;
+    bool    neg    = (v < 0.0f);
+    float   av     = neg ? -v : v;
+    int32_t scaled = (int32_t)(av * (float)scale + 0.5f);   /* yuvarlama */
+    int32_t ip     = scaled / scale;
+    int32_t fp     = scaled % scale;
+    const char *sign = neg ? "-" : (force_sign ? "+" : "");
+    if (decimals == 0)
+        snprintf(buf, n, "%s%ld", sign, (long)ip);
+    else
+        snprintf(buf, n, "%s%ld.%0*ld", sign, (long)ip, (int)decimals, (long)fp);
+    return buf;
+}
+
 /* Durum satırı önceliği (tüm NORMAL sayfalarında ortak) */
 static const char *status_line(void)
 {
@@ -155,26 +176,32 @@ static void render_normal(uint8_t page)
     char line[24];
     switch (page) {
     default:
-    case 0:   /* MAIN: P / I / T / durum */
-        snprintf(line, sizeof line, "P=%7.3f bar     ", (double)s_disp_p);  lcd_write_line(0, line);
-        snprintf(line, sizeof line, "I=%5.2f mA       ", (double)loop_get_measured_ma()); lcd_write_line(1, line);
-        snprintf(line, sizeof line, "T=%5.1f C        ", (double)temp_diode_get_celsius()); lcd_write_line(2, line);
+    case 0: {  /* MAIN: P / I / T / durum */
+        char nb[16];
+        snprintf(line, sizeof line, "P=%7s bar     ", fmt_fixed(nb, sizeof nb, s_disp_p, 3, false));               lcd_write_line(0, line);
+        snprintf(line, sizeof line, "I=%5s mA       ", fmt_fixed(nb, sizeof nb, loop_get_measured_ma(), 2, false)); lcd_write_line(1, line);
+        snprintf(line, sizeof line, "T=%5s C        ", fmt_fixed(nb, sizeof nb, temp_diode_get_celsius(), 1, false)); lcd_write_line(2, line);
         lcd_write_line(3, status_line());
         break;
-    case 1:   /* SENSOR: ham dC + iki diyot + ortam */
+    }
+    case 1: {  /* SENSOR: ham dC + iki diyot + ortam */
+        char a[12], b[12];
         lcd_write_line(0, "-- SENSOR --");
         snprintf(line, sizeof line, "dC=%ld", (long)s_disp_dc); lcd_write_line(1, line);
-        snprintf(line, sizeof line, "Td1=%4.1f Td2=%4.1f",
-                 (double)temp_diode_get_ch_celsius(0),
-                 (double)temp_diode_get_ch_celsius(1)); lcd_write_line(2, line);
-        snprintf(line, sizeof line, "Tamb=%4.1f C", (double)tmp108_get_ambient_c()); lcd_write_line(3, line);
+        snprintf(line, sizeof line, "Td1=%4s Td2=%4s",
+                 fmt_fixed(a, sizeof a, temp_diode_get_ch_celsius(0), 1, false),
+                 fmt_fixed(b, sizeof b, temp_diode_get_ch_celsius(1), 1, false)); lcd_write_line(2, line);
+        snprintf(line, sizeof line, "Tamb=%4s C", fmt_fixed(a, sizeof a, tmp108_get_ambient_c(), 1, false)); lcd_write_line(3, line);
         break;
-    case 2:   /* LOOP: komut / ölçüm / sapma */
+    }
+    case 2: {  /* LOOP: komut / ölçüm / sapma */
+        char nb[16];
         lcd_write_line(0, "-- LOOP --");
-        snprintf(line, sizeof line, "cmd =%5.2f mA", (double)loop_get_commanded_ma()); lcd_write_line(1, line);
-        snprintf(line, sizeof line, "meas=%5.2f mA", (double)loop_get_measured_ma()); lcd_write_line(2, line);
-        snprintf(line, sizeof line, "err =%+5.2f mA", (double)loop_get_error_ma()); lcd_write_line(3, line);
+        snprintf(line, sizeof line, "cmd =%5s mA", fmt_fixed(nb, sizeof nb, loop_get_commanded_ma(), 2, false)); lcd_write_line(1, line);
+        snprintf(line, sizeof line, "meas=%5s mA", fmt_fixed(nb, sizeof nb, loop_get_measured_ma(), 2, false));  lcd_write_line(2, line);
+        snprintf(line, sizeof line, "err =%5s mA", fmt_fixed(nb, sizeof nb, loop_get_error_ma(), 2, true));      lcd_write_line(3, line);
         break;
+    }
     }
 }
 
@@ -193,8 +220,9 @@ static void render_menu(int idx, const char *label)
 static void render_edit(const char *label, float v)
 {
     char line[24];
+    char nb[16];
     lcd_write_line(0, label);
-    snprintf(line, sizeof line, "Value: %.3f", (double)v); lcd_write_line(1, line);
+    snprintf(line, sizeof line, "Value: %s", fmt_fixed(nb, sizeof nb, v, 3, false)); lcd_write_line(1, line);
     lcd_write_line(2, "UP/DN: +/-");
     lcd_write_line(3, "SET: save  long: esc");
 }
@@ -203,8 +231,9 @@ static void render_cal_live(const char *label, int32_t dc, float p)
 {
     char line[24];
     lcd_write_line(0, label);
+    char nb[16];
     snprintf(line, sizeof line, "dC=%ld", (long)dc); lcd_write_line(1, line);
-    snprintf(line, sizeof line, "P=%6.2f bar", (double)p); lcd_write_line(2, line);
+    snprintf(line, sizeof line, "P=%6s bar", fmt_fixed(nb, sizeof nb, p, 2, false)); lcd_write_line(2, line);
     /* Yakalama yalnız stabilken kabul edilir; red mesajı öncelikli          */
     const char *msg = sm_get_info_msg();
     lcd_write_line(3, msg[0]               ? msg :
@@ -217,6 +246,22 @@ static void render_cal_live(const char *label, int32_t dc, float p)
 void pressure_app_init(void)
 {
     /* Tüm output GPIO'lar safe default'larda (boot LOW). */
+
+    /* TEMP_MEAS_ON (PB4): 1N4148 diyot bias enable (tasarımcı teyidi 2026-06-25,
+       pin haritasında TEST_MODE etiketli). CubeMX PB4'ü input-pulldown kuruyor;
+       burada output PP'ye çevirip HIGH sürüyoruz ki diyotlara ~100 µA bias gelsin.
+       Init'in en başında — kalan init (LCD/FDC ~yüzlerce ms) sırasında oturur,
+       ilk ADC taramasından önce hazır olur. Kalıcı çözüm: CubeMX'te PB4→Output PP. */
+    {
+        GPIO_InitTypeDef gi = {0};
+        gi.Pin   = TEMP_MEAS_ON_PIN;
+        gi.Mode  = GPIO_MODE_OUTPUT_PP;
+        gi.Pull  = GPIO_NOPULL;
+        gi.Speed = GPIO_SPEED_FREQ_LOW;
+        HAL_GPIO_Init(TEMP_MEAS_ON_PORT, &gi);
+        HAL_GPIO_WritePin(TEMP_MEAS_ON_PORT, TEMP_MEAS_ON_PIN, GPIO_PIN_SET);
+    }
+
     cal_init();
     /* vf25/tc'nin tek kaynağı cal_params — runtime'a yükle (v2 persistans) */
     temp_diode_set_calibration(cal_get()->vf25_mv, cal_get()->tc_mv_c);

@@ -3,6 +3,22 @@
 > Her Execute Card oturumunda bir paket eklenir. Eski paketlerin üzerine yazılmaz.
 > Henüz paket yok — ilk paket CARD-0.1 onaylandığında oluşturulacak.
 
+## TASK PACKET CARD-3.3 — 2026-06-25
+
+**Goal:** NORMAL/sensör/loop/kalibrasyon ekranlarında boş çıkan sayısal metrik değerlerini göstermek (kök neden: nano-printf `%f` desteklemiyor, `-u _printf_float` yok).
+**Non-goals:** `cmake/**` düzenleme (A yolu reddedildi); değer matematiği değişimi; yeni birim/sayfa.
+**Current state (öncesi):** `pressure_app.c`'de 10 adet `%f`/`%+f` snprintf çağrısı → rakamlar basılmıyor, sadece string sabitleri görünüyor.
+**Exact files inspected before coding:** `App/Src/pressure_app.c` (130-212), `App/Inc/lcd400.h` (LCD_TEXT_COLS=20), `cmake/gcc-arm-none-eabi.cmake:40` + `cmake/starm-clang.cmake:53` (yalnız teyit, --specs=nano.specs / float bayrağı yok).
+**Files allowed to edit:** `App/Src/pressure_app.c`
+**Files forbidden to edit:** `cmake/**`, `lcd400.c`, Core/**, Drivers/**
+**Yapılanlar:** statik `fmt_fixed(buf,n,v,decimals,force_sign)` helper'ı (float→ölçek×yuvarlama→`%s%ld.%0*ld` integer yolu, işaret/negatif/sıfır-dolgu doğru); 10 çağrı `%Ns` ile hizalama korunarak dönüştürüldü; çok-değerli SENSOR satırında iki ayrı buffer; `case` blokları `{}` ile kapsandı.
+**Validation:** `cmake --build build/Debug` PASS (0/0); FLASH 69224 B / RAM 12392 B. .map: float formatlayıcı (vfprintf_float/dtoa/mprec) **linklenmedi**, yalnız integer yolu (svfprintf + vfprintf_i). Seviye 2.
+**Manual validation scenario:** ST-Link flash → NORMAL/sensör/loop ekranında değerler doğru ondalıkla; bilinen 12 mA ile karşılaştır.
+**Rollback plan:** `git checkout -- App/Src/pressure_app.c`.
+**Diff budget:** 1 değişen, 0 yeni. ✓
+**Done criteria:** [x] tüm %f integer'a çevrildi; [x] 0-error build, float-printf linklenmedi; [x] negatif/hizalama doğru; [ ] donanım görsel (MANUAL).
+**Stop conditions:** Başka dosyada değişiklik gerekirse dur; nano integer yolu `*` width reddederse helper'ı sabit-decimals dallara çevir.
+
 ## TASK PACKET CARD-0.1 — 2026-06-12
 
 **Goal:** cal_storage.c flash yazımını STM32U3 HAL'in desteklediği DOUBLEWORD (8 bayt) tipine geçirip build'i düzeltmek.

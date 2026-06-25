@@ -43,7 +43,7 @@ static const char *MENU_LABELS[MI__COUNT] = {
 /* Kalibrasyon sağlamlaştırma eşikleri (donanım testinde ayarlanabilir)        */
 /* -------------------------------------------------------------------------- */
 #define CAL_STAB_WIN          8       /* ~0.8 s @ 100 ms örnekleme            */
-#define CAL_STAB_P2P_MAX      2000    /* ΔC peak-to-peak stabilite eşiği      */
+#define CAL_STAB_P2P_MAX      6000    /* ΔC peak-to-peak stabilite eşiği (bring-up: 2000→6000, sensör gürültüsü/drift'i için gevşetildi) */
 #define CAL_MIN_SPAN_COUNTS   10000   /* zero↔span arası asgari ΔC farkı      */
 #define MENU_TIMEOUT_MS       60000u  /* eylemsizlik → NORMAL (discard)       */
 #define BACKLIGHT_DEFAULT     60u

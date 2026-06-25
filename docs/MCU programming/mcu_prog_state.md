@@ -83,7 +83,15 @@
 
 ## Current Task
 
-**CARD-7.1 donanım bring-up — DEVAM EDİYOR (2026-06-23 ileri).** Canlı: ADC 4 kanal ✓, FDC2214 okuyor ✓ (donanım tank fix + geçici ERRB bypass), loop enable ✓ (FLT power-up glitch maskesi), **4-20mA çıkış kalibre ✓** (kod=144.5·mA+121; 4/12/20 multimetre ile tam). KALAN: (1) basınç kalibrasyonu (FDC ham→bar), (2) ERRB kalıcı fix (FDC2214'te ERRB pini yok, PA1 hayalet; gate STATUS/data-MSB'ye taşınmalı), (3) TEMP_MEAS_ON diyot bias, (4) debug scaffolding (if(1) bypass + g_loop_dbg_*) temizliği. Detay changelog 2026-06-23.
+**CARD-3.3 KAPANDI (2026-06-25, seviye 4) — ekranda metrik float değerleri görünmüyordu, düzeltildi + donanımda doğrulandı.** `pressure_app.c`'deki 10 `%f` çağrısı integer-ölçekli `fmt_fixed` helper'ına çevrildi. Build PASS, .map'te float-printf linklenmedi, flash/verify PASS, **kullanıcı ekranda değerleri gördü.**
+
+**CARD-7.1 donanım bring-up — DEVAM EDİYOR (2026-06-25 ileri).** Canlı: ADC 4 kanal ✓, FDC2214 okuyor ✓, loop enable ✓, 4-20mA çıkış kalibre ✓, **ekran metrikleri ✓ (CARD-3.3)**, **TEMP_MEAS_ON (PB4) diyot bias enable eklendi+flash'lı ✓** (register doğrulandı).
+- **Diyot bias:** PB4 HIGH sürülüyor ama PC0/PC1 rail'e (3.3V) çıkıyor → **diyot ileri yolu açık devre** (sensör sıcaklık-diyot hattı bağlı değil — HW kullanıcıda). Sıcaklık şimdilik ertelendi.
+- **Basınç:** boşta ~0.5 bar = **sıfır offset** (iki LC tankı farklı, normal); zero-cal ile silinir (canlı kanıtlandı). Cal şu an default (cap_at_zero=0, span=1e6 placeholder, p_min=0/p_max=10). dC ~48–53k, ±0.012 bar gürültü + ~0.05 bar ısınma drift.
+- **Kullanıcı (2026-06-25):** devreyi stabilize etmek için güç+ST-Link çıkardı; tekrar kurunca **menüden zero-cal** yapacak (UP=PA11/DN=PA12/SET=PC13). Stabilite kapısı p2p≤2000 takılırsa FDC RCOUNT artırılır.
+- **Kalibrasyon stabilite eşiği gevşetildi:** CAL_STAB_P2P_MAX 2000→6000 (gürültü ±2000). FDC drive düşürme denendi (IDRIVE 31→20) ama osilasyon çöktü → IDRIVE=31 geri. RCOUNT zaten max. Drift (~0.37 bar) = warm-up.
+- **cal_save FLASH WRITE ERR ÇÖZÜLDÜ:** STM32U3 128-bit ECC → eksik quad-word PGSERR. Fix: 16-bayt yuvarlama + geri-okuma doğrulaması + flag clear + 3× retry (VDD 2.84V düşük). Kullanıcı testi: hata yok, güç çevrimde ayar korunuyor. **Backlight de çalışıyor** (kod gerekmedi).
+- KALAN: (1) **bilinen basınçla span-cal** (zero-cal artık çalışıyor + kalıcı), (2) ERRB kalıcı fix (PA1 hayalet; gate STATUS/data-MSB'ye), (3) diyot HW bağlantısı (PC0/PC1 açık devre, kullanıcı) → sonra sıcaklık, (4) debug scaffolding (if(1) bypass + g_loop_dbg_*) temizliği, (5) VDD'yi 3.3V'a çek (kendi beslemesi). Detay changelog 2026-06-25.
 
 ---
 **ESKİ NOT:** ADC bug **ÇÖZÜLDÜ** (3 CubeMX iterasyonu, canlı doğrulandı): nihai konfig ContinuousConvMode=DISABLE + ConversionDataManagement=DMA_ONESHOT + DMA Mode=NORMAL + DestInc=INCREMENTED. Firmware artık tam superloop'ta canlı (uwTick akıyor, adc_buf her 100ms taze, jitter kanıtlı, ICSR=0 thread mode). HCLK=48MHz, I2C bus OK (TMP108@0x48, FDC@0x2A). **Kullanıcı sensörleri + 24V beslemeyi bağlamak için gücü kesti (2026-06-23).** Tekrar bağlanınca: probe (VDD kontrol) + canlı FDC/diyot/loop/LCD doğrulama. NOT: VDD 2.85V düşüktü, loop s_fault=1 — kendi beslemesiyle düzelmesi bekleniyor.
@@ -138,9 +146,9 @@ Bkz. `mcu_prog_manual_steps.md` — MANUAL-1 (donanım hazırlığı), MANUAL-2 
 
 ## Last Validation Results
 
-- **Tarih:** 2026-06-12 | **Tip:** `cmake --build build/Debug` (CARD-0.1 sonrası)
-- **Sonuç:** PASS — 0 hata, 0 uyarı, `PressureTransmitter.elf` link edildi
-- **Ulaşılan seviye:** **2** (derleme) — donanım testi yapılmadı
+- **Tarih:** 2026-06-25 | **Tip:** canlı donanım (CARD-7.1 bring-up: ekran, TEMP_MEAS_ON, stabilite eşiği, cal_save flash fix)
+- **Sonuç:** PASS — build 0/0 (FLASH 69324 B); flash/verify PASS; ekran metrikleri ✓, zero-cal STABLE ✓, Save & Exit hatasız + güç çevrimde kalıcı ✓, backlight ✓
+- **Ulaşılan seviye:** **4** (canlı donanım, kullanıcı teyitli) — span-cal + diyot HW + ERRB kalıcı fix bekliyor
 
 ## Continuity Rules
 

@@ -602,3 +602,124 @@
 **Risks Resolved:** Canlı telemetri kanalı eksikliği → kapandı (firmware tarafı)
 
 **Next Action:** Donanım bekleniyor → CARD-7.1 bring-up (ST-Link takılı + MANUAL-2 teyitleri gerekli)
+
+## 2026-06-25 | Finding | Task: DISP-FLOAT-DIAG (tartışma — kod değişikliği YOK)
+
+**Task ID:** DISP-FLOAT-DIAG
+**Type:** Tanı / bulgu kaydı (kullanıcı: "yarın direkt uygulayalım")
+**Status:** Kök neden bulundu — uygulama CARD-3.3 olarak backlog'a yazıldı, BUGÜN kod değişmedi.
+
+**Belirti (kullanıcı):** Ekranda "mA", "Pa/bar", "C" etiketleri görünüyor ama **sayısal değerler boş**. O sırada sensöre bir şey bağlı değil (bağlamak gerekmiyor — sorun ondan değil).
+
+**Kök neden (kesin):**
+- Proje `--specs=nano.specs` (newlib-nano) ile linkleniyor: `cmake/gcc-arm-none-eabi.cmake:40`, `cmake/starm-clang.cmake:53`.
+- nano-printf **varsayılan olarak `%f` (float) dönüşümünü desteklemez**; açmak için linker'a `-u _printf_float` gerekir — **tüm projede bu bayrak YOK** (`grep _printf_float` → bulunamadı).
+- `pressure_app.c:159-176, 197, 207` değerleri `%7.3f / %5.2f / %5.1f / %+5.2f / %.3f` ile basıyor → float dönüşümü sessizce boş çıkıyor; string sabitleri ("mA", "bar", "C") kalıyor. Senin gördüğün tam bu.
+
+**Sensör tartışması (ayrı, bağlamsal):** Bağlı sensör Yantai metal-kapasitif **7E = 0~345~2068 kPa** (LRL~min span~URL; 345 "discrete sapma" DEĞİL, minimum kalibre edilebilir span; turndown ≈6:1). Boştayken okunan **-0.68 kPa**, ±0.1% URL = ±2.07 kPa hata bandının ~1/3'ü → tamamen makul sıfır offset'i. Donanım/okuma sağlam.
+
+**Karar (yarın uygulanacak):** **B yolu** — `pressure_app.c` içindeki `%f` çağrılarını integer-ölçekli formatlamaya çevir (nano'yu bozma, binary büyütme). A yolu (`-u _printf_float`) REDDEDİLDİ: `cmake/**` FORBIDDEN + ~2-4 KB büyüme. Detay: **CARD-3.3** (backlog).
+
+**Files Changed (doküman):** mcu_prog_backlog.md (CARD-3.3 eklendi), mcu_prog_changelog.md.
+
+**Validation:** Seviye 0 (yalnız analiz/okuma — derleme yapılmadı, kod değişmedi).
+
+**NEXT PROMPT TO CLAUDE:** `/ease-me execute CARD-3.3` — pressure_app.c float→integer formatlama; build + map'te float-printf linklenmediğini teyit; donanımda ekran görsel doğrulama (MANUAL).
+
+## 2026-06-25 | Execute | Task: CARD-3.3 (ekranda metrik float değerleri görünmüyor)
+
+**Task ID:** CARD-3.3
+**Type:** Execute (firmware düzeltmesi)
+**Status:** Complete (kod + build); donanım görsel doğrulaması MANUAL (kullanıcı ST-Link bağlayacak)
+
+**Belirti:** NORMAL/sensör/loop/kalibrasyon ekranlarında etiketler (mA/bar/C) görünüyor, **sayısal değerler boş**. Kök neden DISP-FLOAT-DIAG'da tanılı: nano-printf `%f` desteklemiyor (`-u _printf_float` yok).
+
+**Yapılanlar (B yolu — integer formatlama):**
+- `pressure_app.c`'ye statik `fmt_fixed(buf, n, v, decimals, force_sign)` helper'ı eklendi: float'ı ölçek×yuvarlama ile tamsayıya çevirip `%s%ld.%0*ld` (integer yolu) ile basıyor; negatif/işaret ve ondalık sıfır-dolgu doğru ele alınıyor. Hizalama dış snprintf'te `%Ns` ile korundu.
+- 10 `%f`/`%+f` çağrısı dönüştürüldü: MAIN (P 3-ondalık / I 2 / T 1), SENSOR (Td1/Td2/Tamb 1-ondalık — iki-değerli satırda iki ayrı buffer), LOOP (cmd/meas 2, err 2 + force_sign), render_edit (Value 3), render_cal_live (P 2). `dC=%ld` / `MENU %d` integer formatları değişmedi.
+- `case` blokları yerel buffer için `{ }` ile kapsandı (C89 declaration-after-label).
+
+**Files Changed:** `Firmware/App/Src/pressure_app.c` (1 dosya, 0 yeni — diff budget içinde).
+
+**Tests / Validations Run:**
+- `cmake --build build/Debug` → **PASS** (0 error / 0 warning). FLASH 69224 B, RAM 12392 B.
+- **.map float-link teyidi:** linklenen tek vfprintf yolu `nano-svfprintf.o` + `nano-vfprintf_i.o` (**integer** formatlayıcı). Float formatlayıcı obje (`vfprintf_float`/`_printf_float`/`dtoa`/`mprec`) **linklenmedi** → B yolu doğrulandı, binary float-printf ile şişmedi.
+
+**Validation Level Reached:** **4 (donanım)** — build PASS + .map float-printf linklenmedi + **ST-Link flash/verify PASS + ekranda sayısal değerler görünüyor (kullanıcı görsel teyidi 2026-06-25)**.
+
+**Flash:** STM32U3xx, V3SET, VDD 2.82V, SWD 3.3 MHz; mass erase + 67.60 KB download + verify PASS + reset. Kullanıcı: "değerler görünüyor" → CARD-3.3 KAPANDI.
+
+**Risks Introduced:** None (yalnız biçimlendirme; değer matematiği değişmedi).
+**Risks Resolved:** "Ekranda metrik değerleri boş" → kod tarafı kapandı (donanım teyidi bekliyor).
+
+**NEXT PROMPT TO CLAUDE:** Kullanıcı ST-Link'i bağlayınca → `flash.bat` (freq=4000 + mass erase) → NORMAL/sensör/loop ekranlarında sayısal değerlerin doğru ondalıkla göründüğünü görsel teyit (bilinen 12 mA ile karşılaştır). Sonra CARD-7.1 kalan işler: basınç kalibrasyonu, ERRB kalıcı fix, debug scaffolding temizliği.
+
+## 2026-06-25 | Bring-up | Task: CARD-7.1 (TEMP_MEAS_ON diyot bias enable + basınç teşhisi)
+
+**Type:** Donanım bring-up — canlı debug + firmware değişikliği
+**Status:** TEMP_MEAS_ON enable eklendi (flash'lı, register seviyesinde doğrulandı). Diyot HW açık devre (kullanıcıda). Basınç offset teşhisi yapıldı → zero-cal kullanıcıda (menüden).
+
+**1) TEMP_MEAS_ON (PB4) diyot bias enable:**
+- **BULGU:** Diyot kanalları (PC0/PC1) bias yokken ~0 V (5/7 count) okuyordu → sıcaklık 25 °C'de donmuş, ekranda Td1/Td2 çöp (~323 °C). Pin haritasında diyot bias enable yoktu.
+- **TASARIMCI TEYİDİ:** PB4 (pin haritasında "TEST_MODE" etiketli, opsiyonlu) gerçekte **TEMP_MEAS_ON** = 1N4148 diyot bias enable. TEST_MODE kullanılmayacak (kullanıcı Excel'i düzeltiyor). TEST_MODE firmware'de hiç okunmuyordu → pin güvenle yeniden kullanıldı.
+- **FIX:** `bsp_pins.h`'a TEMP_MEAS_ON alias (PB4); `pressure_app_init` başında PB4 input-pulldown→**Output PP + HIGH** (CubeMX'i değiştirmeden, app tarafında). Kalıcı çözüm: CubeMX'te PB4→Output PP (MANUAL).
+- **Canlı doğrulama:** flash sonrası GPIOB MODER pin4=01 (output)✓, ODR bit4=1 (HIGH)✓. AMA PC0/PC1 **tam rail'e (4094/4095 = 3.3 V)** çıktı, beklenen ~0.5 V diyot düşümü DEĞİL → Vf=3299 mV (>1000 mV max) → hâlâ invalid. **Yorum: diyot ileri yolu AÇIK DEVRE** (sensörün sıcaklık-diyot hattı bağlı değil). Firmware doğru; donanım bağlantısı kullanıcıda. Diyot şimdilik ertelendi.
+
+**2) Basınç okuma teşhisi (sensör bağlı, iki taraf boşta):**
+- **Kablaj (kullanıcı):** IN2A=low→CH2, IN3A=high→CH3, sensör G/E→GND, IN2B/IN3B floating. = tek-uçlu diferansiyel basınç ölçümü. `fdc2214_read_delta`: dC = raw_CH3(high) − raw_CH2(low). **Topoloji doğru.**
+- **Cal = tamamen default** (kalibrasyon yapılmamış): cap_at_zero=0, cap_at_span=1.000.000, p_min=0, p_max=10 bar, damping=0.5s → **p = dC/100000 bar**.
+- **Canlı dC ölçümü:** ~47.800–53.000 count arası (oturum boyunca ~5k drift ≈ 0.05 bar; tur-içi gürültü ±1.200 count ≈ ±0.012 bar). Filtreli p ~0.50 bar STABİL görünüyordu.
+- **KÖK NEDEN:** ~0.5 bar "yanlış" okuma = **sıfır offset** (iki LC tankı fiziksel farklı → eşit basınçta bile ham count'lar ~48k farklı). Gürültü/arıza DEĞİL. Kullanıcının gördüğü 0.4–0.9 = soğuk açılış/ısınma geçişi + offset.
+- **Canlı kanıt:** cap_at_zero=güncel dC yazıldı (RAM) → basınç 0.29→0.20→0.13→0.07→0.03→0.016 bar (IIR yakınsadı) → **zero-cal offset'i siliyor doğrulandı.** Sonra reset (RAM temizlendi).
+
+**Files Changed:** `App/Inc/bsp_pins.h` (TEMP_MEAS_ON alias), `App/Src/pressure_app.c` (PB4 output HIGH init).
+
+**Validation:** Seviye 4 (canlı). Build PASS (FLASH 69280 B), flash/verify PASS, register + ADC + dC canlı okundu.
+
+**NEXT:** Kullanıcı devreyi stabilize edip (güç+ST-Link çıkarıp tekrar) **menüden zero-cal** yapacak (Cal Zero→SET uzun→Save&Exit). Stabilite kapısı (p2p≤2000) takılırsa FDC RCOUNT averaging artırılır. Sonra bilinen basınçla span. Diyot bias: sensör sıcaklık-diyot hattı bağlanınca PC0/PC1 ~0.6 V vermeli (HW kullanıcıda).
+
+## 2026-06-25 | Bring-up | Task: CARD-7.1 (kalibrasyon stabilite eşiği + drive denemesi)
+
+**Type:** Donanım bring-up — canlı debug + firmware tuning
+**Status:** Stabilite eşiği gevşetildi (flash'lı). Drive düşürme denendi→geri alındı. Kullanıcı menüden zero-cal yapacak.
+
+**Belirti:** Menüden zero-cal'da "WAIT: unstable.." çok sık → kullanıcı yakalayamıyor.
+
+**Teşhis (canlı):**
+- Stabilite kapısı: 8-örnek pencere, p2p ≤ CAL_STAB_P2P_MAX=2000 (state_machine.c). RCOUNT zaten 0xFFFF max (averaging artırılamaz).
+- Canlı dC: örnek-başı gürültü ±1.500–2.300 count → 8-örnek p2p sık sık 2000'i aşıyor. AYRICA **büyük warm-up drifti**: dC 50k→66k→87k (+0.37 bar, reset'ten beri tırmanıyor).
+- Drift hipotezi: FDC drive MAX (IDRIVE=31) → LC self-heating → diferansiyel drift.
+
+**Deneme + sonuç:**
+- **IDRIVE 31→20 (0xA000) denendi:** dC ±8.000–22.000 ÇÖP oldu (osilasyon zayıfladı; errflag temiz ama okuma kullanılamaz). → drive düşürmek bu sensörde yanlış; **IDRIVE=31 (0xF800) geri yüklendi** (changelog notu doğruymuş: max drive temiz osilasyon için gerekli). Drift self-heating değil, warm-up.
+- **CAL_STAB_P2P_MAX 2000→6000** (state_machine.c) — gürültü ±2000 olduğundan 2000 eşiği fazla sıkıydı. Doğrulama: IDRIVE=31'de 12-örnek p2p=2109 → 6000 eşiğini rahat geçer.
+
+**Files Changed:** `App/Src/state_machine.c` (CAL_STAB_P2P_MAX 2000→6000), `App/Src/fdc2214.c` (DRIVE: net değişiklik yok, IDRIVE=31; yorum güncellendi—IDRIVE=20 denemesi belgelendi).
+
+**Validation:** Seviye 4 (canlı). Build PASS (FLASH 69284 B), flash/verify PASS, gürültü/p2p canlı doğrulandı.
+
+**NEXT:** Kullanıcı menüden zero-cal (artık STABLE gelir). Cihaz ısınıp dC tırmanışı durduktan sonra kalibre etmesi önerildi (drift oturması için). Sonra bilinen basınçla span. AÇIK: warm-up drifti (~0.37 bar) — sıcaklık kompanzasyonu (diyot) devreye girince düzelmesi beklenir; diyot HW bağlantısı kullanıcıda.
+
+## 2026-06-25 | Bring-up | Task: CARD-7.1 (cal_save flash write hatası — kalibrasyon kalıcılığı)
+
+**Type:** Donanım bring-up — bug fix (flash persistans)
+**Status:** ÇÖZÜLDÜ (kullanıcı testi: "sorun yok"). Backlight de çalışıyor (kod değişikliği gerekmedi — yanlış alarm).
+
+**Belirti:** Menüde "Save & Exit" → "FLASH WRITE ERR"; güç çevrimde kalibrasyon kayboluyor gibi.
+
+**Teşhis (canlı debug):**
+- Flash bölgesi 0x080FE000 incelendi: veri ASLINDA yazılıyordu (magic/version/crc/alanlar tam) ve reset sonrası cal_init doğru yüklüyordu → "kayboluyor" yanılgıydı; asıl sorun cal_save'in false dönüp hata mesajı göstermesi.
+- pFlash.ErrorCode = **0x88 = PGSERR (bit7) + PROGERR (bit3)**. Kök neden: **STM32U3 flash ECC 128-bit (quad-word) granülaritede**; kayıt 56 bayttı (7 doubleword) → son doubleword 128-bit kelimenin yarısını boş bırakıyordu → PGSERR (veri yazılsa da HAL hata).
+- ICACHE kapalı (CR=0x4, EN=0) → stale-cache değil. VDD=2.84V (düşük) → 16-bayt fix sonrası kalan aralıklı hatanın muhtemel sebebi.
+
+**Fix (cal_storage.c, cal_save):**
+1. Tampon **16 baytın katına** yuvarlandı (her 128-bit ECC kelimesi tam yazılır → sistematik PGSERR gitti).
+2. Başarı ölçütü **geri okuma doğrulaması** (memcmp flash↔buf) — HAL bayrağına değil fiilî içeriğe güven.
+3. Başta **__HAL_FLASH_CLEAR_FLAG** (stale bayraklar).
+4. Erase+program+doğrula **3 kez retry** (marjinal VDD kaynaklı kalan aralıklı hatayı yutar).
+
+**Files Changed:** `App/Src/cal_storage.c`.
+
+**Validation:** Seviye 4 (canlı). Build PASS (FLASH 69324 B), flash/verify PASS. Kullanıcı menüden defalarca Save & Exit → hata yok, güç çevrimde ayar korunuyor. Backlight menüden çalışıyor (teyit).
+
+**AÇIK:** VDD 2.84V düşük (kullanıcının 3.3V/24V beslemesiyle flash zaten ilk denemede güvenilir olacak; retry bring-up emniyeti). Kalan CARD-7.1: bilinen basınçla span-cal, ERRB kalıcı fix, diyot HW (PC0/PC1 açık devre), debug scaffolding temizliği.

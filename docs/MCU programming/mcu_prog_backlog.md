@@ -183,6 +183,27 @@
 - [ ] Timeout + sayfalar + alarm ekranı
 - [ ] Donanımda 3 butonla tam akış (MANUAL)
 
+## CARD-3.3 — Ekranda Float Değerleri Görünmüyor (nano-printf %f) — UYGULAMAYA HAZIR
+
+**Purpose:** NORMAL ekranda etiketler ("mA", "bar", "C") görünüyor ama **sayısal değerler boş** çıkıyor. Kök neden TANI EDİLDİ (2026-06-25 oturumu): proje `--specs=nano.specs` (newlib-nano) ile linkleniyor ve nano-printf **varsayılan olarak `%f` float dönüşümünü desteklemiyor**; `-u _printf_float` bayrağı tüm projede yok (arandı, bulunamadı). Bu nedenle `snprintf(..., "%5.2f", ...)` çağrılarında rakam basılmıyor, sadece string sabitleri kalıyor. Donanım/sensör ile **alakasız** — biçimlendirme sorunu.
+**Kanıt:** `pressure_app.c:159-176` (`%7.3f bar`, `%5.2f mA`, `%5.1f C`, `%+5.2f mA`), `cmake/gcc-arm-none-eabi.cmake:40` (`--specs=nano.specs`, float bayrağı yok), `cmake/starm-clang.cmake:53` (aynı).
+**Scope (KARAR: B yolu — integer formatlama, nano'yu bozma):** `pressure_app.c` içindeki tüm `%f`/`%+f` snprintf çağrılarını integer-ölçekli formatlamaya çevir. Yardımcı bir yaklaşım: değeri `*100` (veya `*1000`) tamsayıya çevir, işaret + tam/ondalık kısmı `%ld.%02ld` ile bas (negatif değerlerde işaret ve ondalık modülü doğru ele al — örn. küçük statik `fmt_fixed(buf, val, decimals)` helper'ı `pressure_app.c` içinde). Etkilenen satırlar: 159 (P bar, 3 ondalık), 160/161 (I mA, T C, 2/1 ondalık), 166-176 (sensör/loop sayfaları: dC zaten `%ld` — dokunma; Td1/Td2/Tamb/cmd/meas/err float), 197 (Value %.3f), 207 (P bar). `dC=%ld` ve `MENU %d` gibi integer formatlar zaten çalışıyor — onlara dokunma.
+**Non-goals:** `cmake/**` düzenleme (FORBIDDEN — A yolu `-u _printf_float` reddedildi: yasak dosya + ~2-4 KB flash/RAM büyümesi). Yeni birim/sayfa ekleme (CARD-3.2). Değer matematiği değişikliği.
+**Dependencies:** — (bağımsız; CARD-3.2'den önce de yapılabilir)
+**Inspect before coding:** `App/Src/pressure_app.c` (159-210 render blokları), `App/Inc/lcd400.h` (LCD_TEXT_COLS — satır taşmaması), `cmake/gcc-arm-none-eabi.cmake` + `cmake/starm-clang.cmake` (sadece teyit; DÜZENLEME YOK).
+**Files allowed to edit:** `App/Src/pressure_app.c`
+**Files forbidden to edit:** `cmake/**`, `lcd400.c` (sürücü zaten ham string basıyor — sorun orada değil).
+**Expected behavior:** NORMAL + sensör + loop + kalibrasyon ekranlarında tüm sayısal değerler doğru ondalıkla görünür (örn. `I=12.00 mA`, `P=  1.234 bar`, `T= 25.4 C`, `err =+0.03 mA`). Negatif değerler ve hizalama (genişlik) korunur. Binary boyutu büyümez (float-printf linklenmez).
+**Tests / validation:** `cd Firmware && cmake --preset Debug && cmake --build build/Debug` → 0 hata; map'te `_printf_float`/`_vfprintf_r` float yolunun linklenmediğini teyit (boyut artmamalı). Donanımda ekran görsel doğrulama (MANUAL — kart varsa).
+**Manual validation:** ST-Link flash → NORMAL ekranda 4-20 mA / bar / C değerleri okunuyor; bilinen bir akımla (örn. 12 mA) karşılaştır.
+**Rollback plan:** `git checkout -- App/Src/pressure_app.c` (repo artık git — CARD-0.3 sonrası).
+**Diff budget:** 1 production dosya, 0 yeni.
+**Done criteria:**
+- [ ] Tüm `%f` çağrıları integer-formatlamaya çevrildi (helper veya inline)
+- [ ] Temiz build (0 error), binary boyutu artmadı (float-printf linklenmedi)
+- [ ] Negatif değer + hizalama doğru
+- [ ] Donanımda değerler görünüyor (MANUAL bekliyor)
+
 ## CARD-4.1 — Loop Geri Besleme Makullüğü + NAMUR Alarmları
 
 **Purpose:** Komut edilen ile ölçülen akım arasındaki sapmanın tanısı; standart alarm seviyeleri.
