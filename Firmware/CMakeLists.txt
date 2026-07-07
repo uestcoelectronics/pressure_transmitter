@@ -58,6 +58,11 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/App/Src/cal_storage.c
     ${CMAKE_SOURCE_DIR}/App/Src/state_machine.c
     ${CMAKE_SOURCE_DIR}/App/Src/pressure_app.c
+    # HART haberleşmesi (feature/hart): DAC8742H modem + protokol katmanları
+    ${CMAKE_SOURCE_DIR}/App/Src/hart_phy.c
+    ${CMAKE_SOURCE_DIR}/App/Src/hart_dl.c
+    ${CMAKE_SOURCE_DIR}/App/Src/hart_cmds.c
+    ${CMAKE_SOURCE_DIR}/App/Src/hart.c
 )
 
 # Add include paths

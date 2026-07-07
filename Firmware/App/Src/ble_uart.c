@@ -2,6 +2,7 @@
 #include "bsp_pins.h"
 #include "usart.h"          /* huart3 */
 #include "stm32u3xx_hal.h"
+#include "hart_phy.h"       /* HART: ortak RxCplt callback dispatch'i      */
 
 /* -------------------------------------------------------------------------- */
 /* RX ring buffer                                                              */
@@ -88,6 +89,10 @@ uint32_t ble_uart_overflows(void) { return s_overflow; }
 /* -------------------------------------------------------------------------- */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+    /* HART: LPUART1 baytları hart_phy'nin ring'ine (HAL callback global
+     * tekil olduğundan dispatch burada yapılır).                           */
+    if (huart->Instance == LPUART1) { hart_phy_on_rx_cplt(); return; }
+    
     if (huart->Instance != USART3) return;
 
     uint32_t next = s_rx_head + 1u;

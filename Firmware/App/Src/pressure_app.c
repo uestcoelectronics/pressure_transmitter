@@ -11,6 +11,7 @@
 #include "diag.h"
 #include "ble_uart.h"
 #include "ble_proto.h"
+#include "hart.h"        /* HART: 4-20mA+HART varyantı (B404 DAC8742H)     */
 #include "dbg_swo.h"
 #include "stm32u3xx_hal.h"
 #ifdef USE_IWDG
@@ -294,6 +295,10 @@ void pressure_app_init(void)
     ble_uart_init();
     ble_proto_init();
 
+    /* HART: DAC8742H modem + LPUART1 (~60 ms bloklayan modem-reset içerir).
+     * 4-20 varyantında B404 dizili değil → hat sessiz kalır, zararsız.       */
+    hart_init();
+
     /* SWO/ITM canlı telemetri (debugger yoksa no-op)                        */
     dbg_swo_init();
 
@@ -489,6 +494,31 @@ void pressure_app_loop(void)
         (loop_is_enabled()           ? 0x80u : 0u));
     ble_proto_service(now, s_disp_p, temp_diode_get_celsius(),
                       loop_get_measured_ma(), bstat);
+
+    /* ---- HART servis (her döngü geçişi; cevap limiti ~256 ms) ---- */
+    {
+        const cal_params_t *c = cal_get();
+        float span = c->p_max - c->p_min;
+        float cmd_ma = loop_get_commanded_ma();
+        hart_live_t hl = {
+            .pv_bar          = s_disp_p,
+            .sv_temp_c       = temp_diode_get_celsius(),
+            .tv_temp_c       = tmp108_get_ambient_c(),
+            .loop_ma         = loop_get_measured_ma(),
+            .pct_range       = (span != 0.0f)
+                               ? (s_disp_p - c->p_min) / span * 100.0f : 0.0f,
+            .lrv_bar         = c->p_min,
+            .urv_bar         = c->p_max,
+            .damping_s       = c->damping_s,
+            .malfunction     = loop_is_in_fault() || fdc2214_has_error()
+                               || diag_any(),
+            .loop_saturated  = (cmd_ma <= LOOP_SAT_LOW_MA)
+                               || (cmd_ma >= LOOP_SAT_HIGH_MA),
+            .pv_out_of_limits= (s_disp_p < c->p_min) || (s_disp_p > c->p_max),
+            .extra_status    = bstat,      /* cmd 48 ilk baytı              */
+        };
+        hart_service(now, &hl);
+    }                  
 
     /* SWO/ITM canlı telemetri (1 Hz; SWV yoksa no-op) */
     dbg_swo_telemetry(now, s_disp_p, temp_diode_get_celsius(),
