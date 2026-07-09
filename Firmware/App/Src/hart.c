@@ -29,6 +29,7 @@ void hart_service(uint32_t now_ms, const hart_live_t *live)
         hart_dl_mark_error(&s_dl);      /* bozuk çerçeveyi yut              */
 
     hart_dl_gap_check(&s_dl, now_ms);
+    hart_cmds_set_time(now_ms);            /* cmd 9 zaman damgası          */
 
     while (hart_phy_read_byte(&b)) {
         if (!hart_dl_input(&s_dl, b, now_ms))

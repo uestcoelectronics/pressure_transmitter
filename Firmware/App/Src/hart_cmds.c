@@ -71,11 +71,25 @@ void hart_db_init(hart_db_t *db)
     db->dev_id[2]     = 0x01u;
     db->poll_addr     = 0u;
     db->min_preambles = 5u;
-    db->univ_rev      = 5u;    /* HART 5 komut seti                         */
+    db->univ_rev      = 7u;    /* HART 7 komut seti                         */
     db->dev_rev       = 1u;
     db->sw_rev        = 1u;
     db->hw_rev        = 1u;
     db->flags         = 0u;
+
+    /* HART 7: expanded device type, uzun adresle bit-uyumlu kurulur:
+     * addr b0(5..0) = dev_type16 bit13..8, addr b1 = dev_type16 bit7..0.
+     * Eski (mfr_id&0x3F)<<8 | dev_type seçimi adresi DEĞİŞTİRMEZ.           */
+    db->dev_type16        = (uint16_t)(((uint16_t)(db->mfr_id & 0x3Fu) << 8) | db->dev_type);
+    db->mfr_id16          = db->mfr_id;   /* FieldComm 16-bit kod alınınca güncelle */
+    db->priv_label16      = db->mfr_id;   /* private-label yok → üretici     */
+    db->device_profile    = 65u;          /* Common Table 57: process automation (teyit et) */
+    db->max_dev_vars      = 3u;           /* PV, SV, TV                      */
+    db->cfg_change_count  = 0u;
+    db->ext_dev_status    = 0u;
+    db->loop_current_mode = 1u;           /* poll 0 → loop aktif             */
+    memset(db->long_tag, 0, sizeof db->long_tag);
+    memcpy(db->long_tag, "PT910 PRESSURE TRANSMITTER", 26);
 
     hart_pack_ascii("PT910",  db->tag,        sizeof db->tag);
     hart_pack_ascii("PRESSURE XMTR", db->descriptor, sizeof db->descriptor);
@@ -90,6 +104,17 @@ void hart_db_init(hart_db_t *db)
     db->cold_start  = true;
     db->cfg_changed = false;
 }
+
+/* Konfig değişikliği: bayrak + HART7 16-bit sayaç (cmd0/38'de görünür)  */
+static void cfg_mark(hart_db_t *db)
+{
+    db->cfg_changed = true;
+    db->cfg_change_count++;
+}
+
+/* cmd 9 zaman damgası kaynağı (1/32 ms birimi; hart_service besler)     */
+static uint32_t s_time_ms;
+void hart_cmds_set_time(uint32_t now_ms) { s_time_ms = now_ms; }
 
 /* ------------------------------------------------------------------ */
 /* Adres eşleme                                                         */
@@ -107,7 +132,7 @@ bool hart_addr_match(const hart_db_t *db, const hart_frame_t *f)
         return (uint8_t)(f->addr[0] & 0x3Fu) == db->poll_addr;
     }
     if (long_addr_is_broadcast(f)) {
-        return f->cmd == 11u;      /* broadcast yalnız "ID by tag" için     */
+        return f->cmd == 11u || f->cmd == 21u;   /* ID by (long) tag        */
     }
     return (uint8_t)(f->addr[0] & 0x3Fu) == (uint8_t)(db->mfr_id & 0x3Fu) &&
            f->addr[1] == db->dev_type &&
@@ -139,10 +164,10 @@ uint8_t hart_device_status(const hart_db_t *db, const hart_live_t *live)
 static uint8_t cmd0_payload(const hart_db_t *db, uint8_t *d)
 {
     d[0]  = 254u;               /* sabit "expansion" baytı                  */
-    d[1]  = db->mfr_id;
-    d[2]  = db->dev_type;
-    d[3]  = db->min_preambles;
-    d[4]  = db->univ_rev;
+    d[1]  = (uint8_t)(db->dev_type16 >> 8);   /* expanded device type       */
+    d[2]  = (uint8_t)(db->dev_type16);
+    d[3]  = db->min_preambles;  /* master→slave min preamble                */
+    d[4]  = db->univ_rev;       /* = 7                                      */
     d[5]  = db->dev_rev;
     d[6]  = db->sw_rev;
     d[7]  = db->hw_rev;         /* bit0..2 fiziksel sinyal kodu = 0 (FSK)   */
@@ -150,7 +175,40 @@ static uint8_t cmd0_payload(const hart_db_t *db, uint8_t *d)
     d[9]  = db->dev_id[0];
     d[10] = db->dev_id[1];
     d[11] = db->dev_id[2];
-    return 12u;
+    d[12] = db->min_preambles;  /* slave→master min preamble                */
+    d[13] = db->max_dev_vars;
+    d[14] = (uint8_t)(db->cfg_change_count >> 8);
+    d[15] = (uint8_t)(db->cfg_change_count);
+    d[16] = db->ext_dev_status;
+    d[17] = (uint8_t)(db->mfr_id16 >> 8);
+    d[18] = (uint8_t)(db->mfr_id16);
+    d[19] = (uint8_t)(db->priv_label16 >> 8);
+    d[20] = (uint8_t)(db->priv_label16);
+    d[21] = db->device_profile;
+    return 22u;
+}
+
+/* cmd 9 tek slot doldur: 8 bayt (kod, sınıf, birim, f32, durum)            */
+static void dv_slot(uint8_t *d, uint8_t code, const hart_live_t *live)
+{
+    uint8_t cls = HART_CLASS_NONE, unit = HART_UNIT_NOT_USED;
+    uint8_t st  = HART_DVSTAT_GOOD;
+    float   v   = 0.0f;
+    switch (code) {
+    case HART_DV_PV:        cls = HART_CLASS_PRESSURE;    unit = HART_UNIT_BAR;     v = live->pv_bar;    break;
+    case HART_DV_SV:        cls = HART_CLASS_TEMPERATURE; unit = HART_UNIT_CELSIUS; v = live->sv_temp_c; break;
+    case HART_DV_TV:        cls = HART_CLASS_TEMPERATURE; unit = HART_UNIT_CELSIUS; v = live->tv_temp_c; break;
+    case HART_DV_LOOP_MA:   unit = HART_UNIT_MA;      v = live->loop_ma;   break;
+    case HART_DV_PCT_RANGE: unit = HART_UNIT_PERCENT; v = live->pct_range; break;
+    default:                                          /* desteklenmeyen kod */
+        st = HART_DVSTAT_BAD;
+        { union { float f; uint32_t u; } nan; nan.u = 0x7FA00000u; v = nan.f; }
+        break;
+    }
+    if (live->malfunction && st == HART_DVSTAT_GOOD) st = HART_DVSTAT_BAD;
+    d[0] = code; d[1] = cls; d[2] = unit;
+    hart_put_f32(&d[3], v);
+    d[7] = st;
 }
 
 bool hart_cmds_handle(hart_db_t *db, const hart_frame_t *req,
@@ -188,18 +246,72 @@ bool hart_cmds_handle(hart_db_t *db, const hart_frame_t *req,
 
     case 6:                                 /* Write Polling Address        */
         if (req->bc < 1u)            { *rc = HART_RC_TOO_FEW_BYTES; break; }
-        if (req->data[0] > 15u)      { *rc = HART_RC_INVALID_SEL;   break; }
-        db->poll_addr   = req->data[0];
-        db->cfg_changed = true;
+        if (req->data[0] > 63u)      { *rc = HART_RC_INVALID_SEL;   break; }
+        if (req->bc >= 2u && req->data[1] > 1u) { *rc = HART_RC_INVALID_SEL; break; }
+        db->poll_addr = req->data[0];
+        if (req->bc >= 2u) db->loop_current_mode = req->data[1];
+        else               db->loop_current_mode = (req->data[0] == 0u) ? 1u : 0u;
+        cfg_mark(db);
         data[0] = db->poll_addr;
-        *dlen = 1u;
+        data[1] = db->loop_current_mode;
+        *dlen = 2u;
         break;
+
+    case 7:                                 /* Read Loop Configuration      */
+        data[0] = db->poll_addr;
+        data[1] = db->loop_current_mode;
+        *dlen = 2u;
+        break;
+
+    case 8:                                 /* Read Dyn.Var Classifications */
+        data[0] = HART_CLASS_PRESSURE;      /* PV                           */
+        data[1] = HART_CLASS_TEMPERATURE;   /* SV                           */
+        data[2] = HART_CLASS_TEMPERATURE;   /* TV                           */
+        data[3] = HART_CLASS_NONE;          /* QV yok                       */
+        *dlen = 4u;
+        break;
+
+    case 9: {                               /* Read Dev Vars with Status    */
+        if (req->bc < 1u) { *rc = HART_RC_TOO_FEW_BYTES; break; }
+        uint8_t n = req->bc; if (n > 8u) n = 8u;
+        data[0] = db->ext_dev_status;
+        for (uint8_t i = 0; i < n; i++)
+            dv_slot(&data[1u + 8u*i], req->data[i], live);
+        uint32_t ts = s_time_ms * 32u;      /* HART zamanı: 1/32 ms         */
+        uint8_t  off = (uint8_t)(1u + 8u*n);
+        data[off]     = (uint8_t)(ts >> 24);
+        data[off+1u]  = (uint8_t)(ts >> 16);
+        data[off+2u]  = (uint8_t)(ts >> 8);
+        data[off+3u]  = (uint8_t)(ts);
+        *dlen = (uint8_t)(off + 4u);
+        break;
+    }
 
     case 11:                                /* Read Unique ID by Tag        */
         if (req->bc < 6u) { *rc = HART_RC_TOO_FEW_BYTES; break; }
         if (memcmp(req->data, db->tag, 6u) != 0)
             return false;                   /* tag bizim değil → SESSİZ     */
         *dlen = cmd0_payload(db, data);
+        break;
+
+    case 20:                                /* Read Long Tag                */
+        memcpy(data, db->long_tag, 32u);
+        *dlen = 32u;
+        break;
+
+    case 21:                                /* Read Unique ID by Long Tag   */
+        if (req->bc < 32u) { *rc = HART_RC_TOO_FEW_BYTES; break; }
+        if (memcmp(req->data, db->long_tag, 32u) != 0)
+            return false;                   /* bizim değil → SESSİZ         */
+        *dlen = cmd0_payload(db, data);
+        break;
+
+    case 22:                                /* Write Long Tag               */
+        if (req->bc < 32u) { *rc = HART_RC_TOO_FEW_BYTES; break; }
+        memcpy(db->long_tag, req->data, 32u);
+        cfg_mark(db);
+        memcpy(data, db->long_tag, 32u);
+        *dlen = 32u;
         break;
 
     case 12:                                /* Read Message                 */
@@ -243,7 +355,7 @@ bool hart_cmds_handle(hart_db_t *db, const hart_frame_t *req,
     case 17:                                /* Write Message                */
         if (req->bc < 24u) { *rc = HART_RC_TOO_FEW_BYTES; break; }
         memcpy(db->message, req->data, 24u);
-        db->cfg_changed = true;
+        cfg_mark(db);
         memcpy(data, db->message, 24u);
         *dlen = 24u;
         break;
@@ -253,7 +365,7 @@ bool hart_cmds_handle(hart_db_t *db, const hart_frame_t *req,
         memcpy(db->tag,        &req->data[0],  6u);
         memcpy(db->descriptor, &req->data[6],  12u);
         memcpy(db->date,       &req->data[18], 3u);
-        db->cfg_changed = true;
+        cfg_mark(db);
         memcpy(data, req->data, 21u);
         *dlen = 21u;
         break;
@@ -261,19 +373,30 @@ bool hart_cmds_handle(hart_db_t *db, const hart_frame_t *req,
     case 19:                                /* Write Final Assembly Number  */
         if (req->bc < 3u) { *rc = HART_RC_TOO_FEW_BYTES; break; }
         memcpy(db->final_asm, req->data, 3u);
-        db->cfg_changed = true;
+        cfg_mark(db);
         memcpy(data, db->final_asm, 3u);
         *dlen = 3u;
         break;
 
-    case 38:                                /* Reset Config-Changed (CP)    */
+    case 38:                                /* Reset Config-Changed Flag    */
+        /* HART7: master kendi bildiği sayacı gönderir; uyuşmazsa temizleme
+         * yapılmaz (başka master arada konfig değiştirmiş demektir).       */
+        if (req->bc >= 2u) {
+            uint16_t m = (uint16_t)(((uint16_t)req->data[0] << 8) | req->data[1]);
+            if (m != db->cfg_change_count) { *rc = HART_RC_CTR_MISMATCH; break; }
+        }
         db->cfg_changed = false;
+        data[0] = (uint8_t)(db->cfg_change_count >> 8);
+        data[1] = (uint8_t)(db->cfg_change_count);
+        *dlen = 2u;
         break;
 
-    case 48:                                /* Read Additional Status (CP)  */
-        memset(data, 0, 8u);
+    case 48:                                /* Read Additional Status       */
+        memset(data, 0, 9u);
         data[0] = live->extra_status;       /* cihaz-özel durum bitleri     */
-        *dlen = 8u;
+        data[6] = db->ext_dev_status;       /* HART7 extended device status */
+        /* data[7] op-mode=0, data[8] standardized status0=0                */
+        *dlen = 9u;
         break;
 
     default:

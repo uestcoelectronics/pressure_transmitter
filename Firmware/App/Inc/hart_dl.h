@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define HART_MAX_DATA        64u   /* universal komut max ~24; pay bırakıldı */
+#define HART_MAX_DATA        80u   /* HART7 cmd 9 (8 slot): 1+8*8+4=69B; pay */
 #define HART_MAX_FRAME       (1u + 5u + 1u + 1u + HART_MAX_DATA + 1u)
 #define HART_TX_PREAMBLES    5u    /* cevap preamble sayısı (min 5)          */
 #define HART_GAP_TIMEOUT_MS  35u   /* >3 karakter süresi (1 kar. ≈ 9.17 ms)  */

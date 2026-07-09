@@ -91,8 +91,10 @@ int main(void)
     { uint8_t ds = hart_device_status(&db, &live);
       CHECK(ds & HART_DS_COLD_START, "cold-start biti ilk cevapta set"); }
     CHECK(hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen), "islendi");
-    CHECK(rc == 0 && dlen == 12 && data[0] == 254, "cmd0 payload (FE, 12B)");
-    CHECK(data[4] == 5, "universal rev = HART 5");
+    CHECK(rc == 0 && dlen == 22 && data[0] == 254, "cmd0 payload (FE, 22B HART7)");
+    CHECK(data[4] == 7, "universal rev = HART 7");
+    CHECK(data[13] == 3, "max device vars = 3");
+    CHECK(data[14] == 0 && data[15] == 0, "cfg-change counter = 0 (boot)");
     CHECK(!db.cold_start, "cold-start cevap sonrasi dustu");
     n = hart_dl_build_ack(&dl.f, rc, 0x20, data, dlen, ack);
     { uint8_t chk = 0; for (uint16_t i = 5; i < n; i++) chk ^= ack[i];
@@ -126,13 +128,21 @@ int main(void)
       feed(&dl, req, n, 500);
       hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
       CHECK(rc == 0 && db.poll_addr == 7 && db.cfg_changed, "yazildi + cfg-changed");
+      CHECK(db.cfg_change_count == 1, "cfg sayaci ++");
+      CHECK(dlen == 2 && data[1] == 0, "poll!=0 -> loop mode 0 (multidrop)");
       n = build_stx_short(7, 0, NULL, 0, req); feed(&dl, req, n, 600);
       CHECK(hart_addr_match(&db, &dl.f), "poll=7 eslesiyor");
       n = build_stx_short(0, 0, NULL, 0, req); feed(&dl, req, n, 700);
       CHECK(!hart_addr_match(&db, &dl.f), "poll=0 artik eslesmiyor");
       pa = 99; n = build_stx_short(7, 6, &pa, 1, req); feed(&dl, req, n, 750);
       hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
-      CHECK(rc == HART_RC_INVALID_SEL, "poll>15 -> RC=2"); }
+      CHECK(rc == HART_RC_INVALID_SEL, "poll>63 -> RC=2");
+      pa = 45; n = build_stx_short(7, 6, &pa, 1, req); feed(&dl, req, n, 760);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == 0 && db.poll_addr == 45, "poll=45 kabul (HART7 0..63)");
+      pa = 7;  n = build_stx_short(45, 6, &pa, 1, req); feed(&dl, req, n, 770);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == 0 && db.poll_addr == 7, "poll geri 7"); }
 
     printf("== 7) Uzun adres cmd 0 ==\n");
     { uint8_t a[5] = { (uint8_t)(0x80u | (db.mfr_id & 0x3Fu)),
@@ -150,7 +160,7 @@ int main(void)
       feed(&dl, req, n, 1000);
       CHECK(hart_addr_match(&db, &dl.f), "broadcast+cmd11 kabul");
       CHECK(hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen) &&
-            dlen == 12, "tag uyusti -> cmd0 payload");
+            dlen == 22, "tag uyusti -> cmd0 payload");
       uint8_t yanlis[6]; hart_pack_ascii("YOK", yanlis, 6);
       n = build_stx_long(bc, 11, yanlis, 6, req);
       feed(&dl, req, n, 1100);
@@ -167,6 +177,62 @@ int main(void)
     feed(&dl, req, n, 3000);
     hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
     CHECK(rc == HART_RC_NOT_IMPLEMENTED && dlen == 0, "RC=64, veri yok");
+
+    printf("== 11) HART7: Cmd 7/8 ==\n");
+    n = build_stx_short(7, 7, NULL, 0, req); feed(&dl, req, n, 3100);
+    hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+    CHECK(rc == 0 && dlen == 2 && data[0] == 7, "cmd7 poll+mode");
+    n = build_stx_short(7, 8, NULL, 0, req); feed(&dl, req, n, 3200);
+    hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+    CHECK(rc == 0 && dlen == 4 && data[0] == HART_CLASS_PRESSURE &&
+          data[1] == HART_CLASS_TEMPERATURE, "cmd8 siniflar");
+
+    printf("== 12) HART7: Cmd 9 (PV+SV, durumlu) ==\n");
+    { uint8_t codes[2] = { HART_DV_PV, HART_DV_SV };
+      hart_cmds_set_time(1000u);
+      n = build_stx_short(7, 9, codes, 2, req); feed(&dl, req, n, 3300);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == 0 && dlen == 1 + 16 + 4, "uzunluk 21 (ext+2 slot+ts)");
+      CHECK(data[1] == HART_DV_PV && data[2] == HART_CLASS_PRESSURE &&
+            data[3] == HART_UNIT_BAR, "slot0 = PV/bar");
+      CHECK(fabsf(get_f32(&data[4]) - 5.25f) < 1e-6f, "slot0 deger 5.25");
+      CHECK(data[8] == HART_DVSTAT_GOOD, "slot0 durum GOOD");
+      CHECK(data[9] == HART_DV_SV && data[11] == HART_UNIT_CELSIUS, "slot1 = SV/C"); }
+
+    printf("== 13) HART7: Cmd 20/22 long tag ==\n");
+    { n = build_stx_short(7, 20, NULL, 0, req); feed(&dl, req, n, 3400);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == 0 && dlen == 32 &&
+            memcmp(data, "PT910 PRESSURE TRANSMITTER", 26) == 0, "cmd20 icerik");
+      uint8_t nt[32]; memset(nt, 0, 32); memcpy(nt, "TESISAT-7 BASINC", 16);
+      uint16_t prev = db.cfg_change_count;
+      n = build_stx_short(7, 22, nt, 32, req); feed(&dl, req, n, 3500);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == 0 && memcmp(db.long_tag, nt, 32) == 0, "cmd22 yazildi");
+      CHECK(db.cfg_change_count == prev + 1, "cmd22 sayac ++"); }
+
+    printf("== 14) HART7: Cmd 38 counter dogrulamali ==\n");
+    { uint8_t wrong[2] = { 0xFF, 0xFF };
+      n = build_stx_short(7, 38, wrong, 2, req); feed(&dl, req, n, 3600);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == HART_RC_CTR_MISMATCH && db.cfg_changed, "yanlis sayac -> RC9, temizlenmedi");
+      uint8_t ok2[2] = { (uint8_t)(db.cfg_change_count >> 8),
+                         (uint8_t)(db.cfg_change_count) };
+      n = build_stx_short(7, 38, ok2, 2, req); feed(&dl, req, n, 3700);
+      hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen);
+      CHECK(rc == 0 && !db.cfg_changed, "dogru sayac -> temizlendi"); }
+
+    printf("== 15) HART7: Cmd 21 long-tag broadcast ==\n");
+    { uint8_t bc2[5] = { 0x80, 0, 0, 0, 0 };
+      uint8_t lt[32]; memcpy(lt, db.long_tag, 32);
+      n = build_stx_long(bc2, 21, lt, 32, req); feed(&dl, req, n, 3800);
+      CHECK(hart_addr_match(&db, &dl.f), "broadcast+cmd21 kabul");
+      CHECK(hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen) && dlen == 22,
+            "long tag uyusti -> cmd0");
+      lt[0] ^= 0xFF;
+      n = build_stx_long(bc2, 21, lt, 32, req); feed(&dl, req, n, 3900);
+      CHECK(!hart_cmds_handle(&db, &dl.f, &live, &rc, data, &dlen),
+            "long tag uyusmadi -> sessiz"); }
 
     printf("\n%s (%d hata)\n", g_fail ? "SONUC: HATA VAR" : "SONUC: TUM TESTLER GECTI", g_fail);
     return g_fail ? 1 : 0;

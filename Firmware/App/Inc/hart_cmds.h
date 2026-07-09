@@ -2,15 +2,18 @@
  * hart_cmds.h
  * HART universal komut işleyici + cihaz veritabanı (HAL'siz, host-test edilir).
  *
- * Uygulanan komut seti (HART 5 universal + 2 common-practice):
- *   0  Read Unique Identifier          11 Read Unique ID by Tag
- *   1  Read PV                         12 Read Message
- *   2  Read Loop Current & % of Range  13 Read Tag/Descriptor/Date
- *   3  Read Dynamic Variables          14 Read PV Transducer Info
- *   6  Write Polling Address           15 Read Output Info (range/damping)
- *   16 Read Final Assembly Number      17 Write Message
- *   18 Write Tag/Descriptor/Date       19 Write Final Assembly Number
- *   38 Reset Config-Changed Flag (CP)  48 Read Additional Status (CP)
+ * Uygulanan komut seti (HART 7 universal):
+ *   0  Read Unique Identifier          12 Read Message
+ *   1  Read PV                         13 Read Tag/Descriptor/Date
+ *   2  Read Loop Current & % of Range  14 Read PV Transducer Info
+ *   3  Read Dynamic Variables          15 Read Output Info (range/damping)
+ *   6  Write Polling Address (0..63)   16 Read Final Assembly Number
+ *   7  Read Loop Configuration         17 Write Message
+ *   8  Read Dyn. Var. Classifications  18 Write Tag/Descriptor/Date
+ *   9  Read Dev. Vars with Status      19 Write Final Assembly Number
+ *   11 Read Unique ID by Tag           20 Read Long Tag
+ *   21 Read Unique ID by Long Tag      22 Write Long Tag
+ *   38 Reset Cfg-Changed (counter'lı)  48 Read Additional Status
  *
  * Değişken eşlemesi (bu cihaz):
  *   PV = basınç [bar, unit 7]   (kalibre edilmiş, damping'li değer)
@@ -37,6 +40,7 @@ extern "C" {
 #define HART_RC_OK               0u
 #define HART_RC_INVALID_SEL      2u
 #define HART_RC_TOO_FEW_BYTES    5u
+#define HART_RC_CTR_MISMATCH     9u   /* cmd 38: cfg-counter uyuşmadı      */
 #define HART_RC_NOT_IMPLEMENTED  64u
 
 /* Field device status bitleri (status bayt 2)                               */
@@ -52,16 +56,47 @@ extern "C" {
 /* HART Common Table birim kodları (kullanılanlar)                           */
 #define HART_UNIT_BAR            7u
 #define HART_UNIT_CELSIUS        32u
+#define HART_UNIT_MA             39u
+#define HART_UNIT_PERCENT        57u
+#define HART_UNIT_NOT_USED       250u
+
+/* HART 7 device-variable kodları (Common Tables)                            */
+#define HART_DV_PCT_RANGE        244u
+#define HART_DV_LOOP_MA          245u
+#define HART_DV_PV               246u
+#define HART_DV_SV               247u
+#define HART_DV_TV               248u
+#define HART_DV_QV               249u
+
+/* Device-variable classification (Common Table 21; üründe teyit edilecek)   */
+#define HART_CLASS_NONE          0u
+#define HART_CLASS_TEMPERATURE   64u
+#define HART_CLASS_PRESSURE      65u
+
+/* Device-variable status: bit7..6 kalite                                    */
+#define HART_DVSTAT_GOOD         0xC0u
+#define HART_DVSTAT_BAD          0x00u
 
 typedef struct {
     /* Kimlik — FieldComm Group kayıtlı ID alınana kadar geçici değerler     */
     uint8_t mfr_id;         /* 250 = private-label/kayıtsız (geçici)         */
     uint8_t dev_type;
     uint8_t dev_id[3];      /* seri numarasından türetilecek                 */
-    uint8_t poll_addr;      /* 0..15 (HART5); cmd 6 ile yazılır              */
+    uint8_t poll_addr;      /* 0..63 (HART7); cmd 6 ile yazılır              */
     uint8_t min_preambles;  /* master'dan istenen preamble (5)               */
-    uint8_t univ_rev;       /* 5 = HART 5 komut seti                         */
+    uint8_t univ_rev;       /* 7 = HART 7 komut seti                         */
     uint8_t dev_rev, sw_rev, hw_rev, flags;
+
+    /* HART 7 kimlik/durum alanları                                          */
+    uint16_t dev_type16;        /* expanded device type (cmd0 b1-2)          */
+    uint16_t mfr_id16;          /* 16-bit üretici kodu (cmd0 b17-18)         */
+    uint16_t priv_label16;      /* private-label distributor (cmd0 b19-20)   */
+    uint8_t  device_profile;    /* cmd0 b21 (Common Table 57)                */
+    uint8_t  max_dev_vars;      /* cmd0 b13                                  */
+    uint16_t cfg_change_count;  /* her konfig yazımında ++ (cmd0 b14-15)     */
+    uint8_t  ext_dev_status;    /* extended field device status (cmd0 b16)   */
+    uint8_t  loop_current_mode; /* 0=multidrop(sabit) 1=aktif (cmd 6/7)      */
+    char     long_tag[32];      /* ISO Latin-1, cmd 20/21/22 (RAM — TODO v3) */
 
     /* Packed-ASCII/metin alanları (cmd 12/13/17/18)                         */
     uint8_t tag[6];         /* 8 karakter packed                             */
@@ -108,6 +143,9 @@ bool hart_cmds_handle(hart_db_t *db, const hart_frame_t *req,
 
 /* Status bayt 2'yi üret.                                                    */
 uint8_t hart_device_status(const hart_db_t *db, const hart_live_t *live);
+
+/* HART zaman damgası (cmd 9): hart_service her turda günceller.             */
+void hart_cmds_set_time(uint32_t now_ms);
 
 /* Yardımcılar (host testinde de kullanılır)                                 */
 void hart_pack_ascii(const char *src, uint8_t *dst, uint8_t n_packed);
