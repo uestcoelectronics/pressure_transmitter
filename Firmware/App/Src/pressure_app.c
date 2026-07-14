@@ -23,9 +23,9 @@
 /* -------------------------------------------------------------------------- */
 /* SICAKLIK MİMARİSİ — rol ayrımı (kullanıcı teyitli, 2026-06-12):             */
 /*                                                                            */
-/*   temp_diode (2× 1N4148, PC0/PC1, sensör modülü içinde)                    */
-/*     → YALNIZ basınç kompanzasyonu. Çift kanal arbitrasyonlu; tutarsızlıkta */
-/*       son tutarlı değerle devam eder (degraded-but-operational): ölçüm ve  */
+/*   temp_diode (TEK 1N4148, TMP_ADC2/PC1 — donanım teyidi Alper 2026-07-14)  */
+/*     → YALNIZ basınç kompanzasyonu. Tek kanal; pencere dışı okumada         */
+/*       son geçerli değerle devam eder (degraded-but-operational): ölçüm ve  */
 /*       4-20 mA çıkışı DURMAZ, ekranda "TDIODE ERR" gösterilir.              */
 /*                                                                            */
 /*   tmp108 (B701, I2C, kart üstü)                                            */
@@ -188,9 +188,9 @@ static void render_normal(uint8_t page)
         char a[12], b[12];
         lcd_write_line(0, "-- SENSOR --");
         snprintf(line, sizeof line, "dC=%ld", (long)s_disp_dc); lcd_write_line(1, line);
-        snprintf(line, sizeof line, "Td1=%4s Td2=%4s",
-                 fmt_fixed(a, sizeof a, temp_diode_get_ch_celsius(0), 1, false),
-                 fmt_fixed(b, sizeof b, temp_diode_get_ch_celsius(1), 1, false)); lcd_write_line(2, line);
+        snprintf(line, sizeof line, "Td=%5s C  %4smV",
+                 fmt_fixed(a, sizeof a, temp_diode_get_ch_celsius(TEMP_DIODE_ACTIVE_CH), 1, false),
+                 fmt_fixed(b, sizeof b, temp_diode_get_ch_vf_mv(TEMP_DIODE_ACTIVE_CH), 0, false)); lcd_write_line(2, line);
         snprintf(line, sizeof line, "Tamb=%4s C", fmt_fixed(a, sizeof a, tmp108_get_ambient_c(), 1, false)); lcd_write_line(3, line);
         break;
     }
