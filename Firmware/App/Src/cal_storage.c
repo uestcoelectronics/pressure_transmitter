@@ -7,13 +7,15 @@
    Katman bağımsızlığı için header include yerine extern bildirimi.          */
 extern void wdt_feed_raw(void);
 
-/* -------------------------------------------------------------------------- */
-/* Flash sayfası seçimi                                                        */
-/* -------------------------------------------------------------------------- */
-/* STM32U385RG: 1 MB flash, 0x0800_0000..0x080F_FFFF, 8 KB sayfa => 128 sayfa */
-/* Son sayfayı kullanıyoruz.                                                   */
-#define CAL_PAGE_INDEX     127u
-#define CAL_FLASH_ADDR     (0x08000000u + (CAL_PAGE_INDEX * 0x2000u))
+/* STM32U385RG: 1 MB flash = 2 bank x 512 KB, sayfa 4 KB (FLASH_PAGE_SIZE).
+ * HAL_FLASHEx_Erase Page'i BANK-İÇİ indeks olarak ve Banks alanını
+ * ZORUNLU bekler. Eski kod 8K sayfa varsayıp 0x080FE000'e yazıyor,
+ * erase ise fiilen 0x080FF000'i siliyordu → 2. kayıttan itibaren
+ * FLASH WRITE ERR. Kayıt artık gerçek son sayfada.                  */
+#define CAL_PAGE_INDEX     127u                /* bank-içi indeks    */
+#define CAL_FLASH_BANK     FLASH_BANK_2
+#define CAL_FLASH_ADDR     0x080FF000u         /* Bank2 son 4KB sayfa */
+#define CAL_LEGACY_ADDR    0x080FE000u         /* eski hatalı adres   */
 
 /* Header tanımı — sondaki CRC dahil hizalı kalsın diye doubleword multiple   */
 typedef struct __attribute__((packed)) {
@@ -80,21 +82,22 @@ void cal_load_defaults(void)
 /* -------------------------------------------------------------------------- */
 /* Init: flash'tan oku, CRC tut yoksa default yükle                            */
 /* -------------------------------------------------------------------------- */
-void cal_init(void)
+/* Verilen adresteki v2 ya da v1 kaydı yüklemeyi dene. */
+static bool cal_try_load(uint32_t addr)
 {
-    const cal_record_t *rec = (const cal_record_t*)CAL_FLASH_ADDR;
+    const cal_record_t *rec = (const cal_record_t*)addr;
 
     if (rec->magic == CAL_MAGIC && rec->version == CAL_VERSION) {
         uint32_t crc = crc32_calc((const uint8_t*)&rec->params, sizeof(cal_params_t));
         if (crc == rec->crc32) {
             s_cal = rec->params;
-            return;
+            return true;
         }
     }
 
     /* v1 → v2 migrasyonu: eski kayıt geçerliyse alanları taşı, yenileri
        default bırak. (Bir sonraki Save & Exit v2 olarak yazar.)             */
-    const cal_record_v1_t *rec1 = (const cal_record_v1_t*)CAL_FLASH_ADDR;
+    const cal_record_v1_t *rec1 = (const cal_record_v1_t*)addr;
     if (rec1->magic == CAL_MAGIC && rec1->version == 1u) {
         uint32_t crc = crc32_calc((const uint8_t*)&rec1->params,
                                   sizeof(cal_params_v1_t));
@@ -107,10 +110,17 @@ void cal_init(void)
             s_cal.k_t_zero    = rec1->params.k_t;
             s_cal.t_ref       = rec1->params.t_ref;
             s_cal.damping_s   = rec1->params.damping_s;
-            return;
+            return true;
         }
     }
+    return false;
+}
 
+void cal_init(void)
+{
+    if (cal_try_load(CAL_FLASH_ADDR))  return;   /* yeni konum (0x080FF000)     */
+    if (cal_try_load(CAL_LEGACY_ADDR)) return;   /* eski adres — kayıt varsa
+                                                    mevcut kalibrasyon korunur  */
     cal_load_defaults();
 }
 
@@ -133,7 +143,7 @@ bool cal_save(void)
     er.TypeErase = FLASH_TYPEERASE_PAGES;
     er.Page      = CAL_PAGE_INDEX;
     er.NbPages   = 1;
-    /* Bank seçimi STM32U3'te tek bank organizasyonunda kullanılmıyor.        */
+    er.Banks     = CAL_FLASH_BANK;   /* ZORUNLU: BKER bunu izler */
 
     /* STM32U3 flash ECC'si 128-bit (quad-word) granülaritede: bir 128-bit
        kelimenin yalnız bir doubleword'ünü yazıp diğerini boş bırakmak son
