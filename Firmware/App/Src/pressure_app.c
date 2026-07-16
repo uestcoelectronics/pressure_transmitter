@@ -186,7 +186,8 @@ static void render_normal(uint8_t page)
     }
     case 1: {  /* SENSOR: ham dC + iki diyot + ortam */
         char a[12], b[12];
-        lcd_write_line(0, "-- SENSOR --");
+        snprintf(line, sizeof line, "-- SENSOR --  BLE:%s",
+                 ble_proto_link_alive() ? "OK" : "--"); lcd_write_line(0, line);         
         snprintf(line, sizeof line, "dC=%ld", (long)s_disp_dc); lcd_write_line(1, line);
         snprintf(line, sizeof line, "Td=%5s C  %4smV",
                  fmt_fixed(a, sizeof a, temp_diode_get_ch_celsius(TEMP_DIODE_ACTIVE_CH), 1, false),

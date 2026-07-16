@@ -36,6 +36,8 @@ void ble_proto_service(uint32_t now_ms, float p_bar, float t_c, float ma,
 
 /* BLE init AT konfigürasyonu tamamlandı (transparent moda geçildi) mı? */
 bool ble_proto_ready(void);
+/* Son 5 sn içinde app'ten geçerli çerçeve alındı mı? */
+bool ble_proto_link_alive(void);
 
 #ifdef __cplusplus
 }

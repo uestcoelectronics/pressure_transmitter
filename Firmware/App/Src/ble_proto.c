@@ -28,6 +28,7 @@ static bool          s_degraded = false;   /* AT konfig başarısız → yine de
 
 /* AT yanıtı için satır tamponu */
 static char    s_line[48];
+static const char *s_cmd = 0;   /* aktif adımın komutu — retry'da yeniden gönderilir */
 static uint8_t s_line_n = 0;
 
 /* -------------------------------------------------------------------------- */
@@ -60,6 +61,7 @@ enum {
 #define BLE_UNLOCK_PIN   0x00001357u
 
 static bool s_unlocked = false;
+static uint32_t s_last_frame_ms = 0;   /* son geçerli çerçevenin zamanı */
 
 /* Çerçeve parser durumu */
 typedef enum { F_SOF = 0, F_LEN, F_CMD, F_PAYLOAD, F_CRC_HI, F_CRC_LO } fstate_t;
@@ -96,6 +98,7 @@ static void enter_step(proto_state_t st, const char *cmd)
     s_step_t = HAL_GetTick();
     s_retry  = 0;
     s_line_n = 0;
+    s_cmd    = cmd;
     if (cmd) at_send(cmd);
 }
 
@@ -133,12 +136,12 @@ static void at_step(proto_state_t next, const char *cmd)
     }
     if (r == -1 || (HAL_GetTick() - s_step_t) >= AT_STEP_TIMEOUT_MS) {
         if (s_retry < AT_STEP_RETRY) {
-            /* Bekleme penceresini yenile. (Komut yeniden gönderilmez; çoğu
-               modül önceki komutu işlemiştir — başarısızsa degraded devreye
-               girer.)                                                         */
+            /* Retry: komutu YENİDEN GÖNDER (ilk gönderim kaçmış olabilir —
+               tek-atış retry'ın işe yaramadığı sahada görüldü, 2026-07-16). */
             s_retry++;
             s_line_n = 0;
             s_step_t = HAL_GetTick();
+            if (s_cmd) at_send(s_cmd);
         } else {
             s_degraded = true;
             enter_step(next, cmd);
@@ -207,6 +210,7 @@ static uint8_t param_set(uint8_t pid, float v)
 /* Çerçeve komut dispatcher — ölçümler GET_MEAS için aktarılır */
 static void dispatch(float p_bar, float t_c, float ma, uint8_t devstat)
 {
+    s_last_frame_ms = HAL_GetTick();   /* geçerli çerçeve = canlı bağlantı kanıtı */
     uint8_t resp[1 + MAX_PAYLOAD];
 
     switch (s_fcmd) {
@@ -354,3 +358,10 @@ void ble_proto_service(uint32_t now_ms, float p_bar, float t_c, float ma,
     }
     }
 }
+
+    /* Son 5 sn içinde geçerli çerçeve alındıysa true (app bağlı ve konuşuyor). */
+    bool ble_proto_link_alive(void)
+    {
+        uint32_t t = s_last_frame_ms;
+        return (t != 0u) && ((HAL_GetTick() - t) < 5000u);
+    }

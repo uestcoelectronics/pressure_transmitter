@@ -35,6 +35,9 @@ void     ble_reset(void);
  * return: gönderilen bayt (timeout'ta < len olabilir).                     */
 uint32_t ble_uart_write(const uint8_t *buf, uint32_t len);
 
+/* Toplam alınan bayt (debug). */
+uint32_t ble_uart_rx_total(void);
+
 /* RX ring buffer'dan tek bayt al. return false → veri yok. */
 bool     ble_uart_read_byte(uint8_t *out);
 
